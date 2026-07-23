@@ -1,0 +1,53 @@
+---
+title: "Conectar asistentes de IA"
+sidebarTitle: "Asistentes de IA"
+description: "Conectá Claude, ChatGPT, Cursor u otro asistente compatible con MCP para que lea tus datos de Kairos, siempre de solo lectura."
+icon: "plug"
+tag: "NEW"
+---
+
+{/* diataxis: reference */}
+
+MCP es un estándar abierto que usan varios asistentes de IA (Claude, ChatGPT, Cursor, entre otros) para conectarse a datos externos. Kairos expone una conexión MCP para que puedas hacerle preguntas a tu asistente favorito sobre tu negocio sin salir de esa herramienta.
+
+<CardGroup cols={2}>
+  <Card title="Qué puede hacer" icon="eye">
+    Leer un conjunto definido de datos de tu organización: ventas, costos, alertas, facturas, proveedores, presupuesto, stock y reputación, entre otros.
+  </Card>
+  <Card title="Qué no puede hacer" icon="lock">
+    Modificar nada. La conexión es de solo lectura: ningún asistente externo puede crear, editar ni borrar información en Kairos.
+  </Card>
+</CardGroup>
+
+## Antes de empezar
+
+- La conexión tiene que estar habilitada para tu organización. Si todavía no la ves disponible, escribinos a [soporte@kairos.rest](mailto:soporte@kairos.rest) para activarla.
+- Necesitás ser **administrador** de tu organización para autorizar la conexión.
+
+## Cómo conectarlo
+
+<Steps>
+  <Step title="Agregá Kairos como conexión en tu asistente">
+    Desde Claude, ChatGPT, Cursor u otro cliente compatible con MCP, agregá Kairos como conexión (según la herramienta, esto puede ser un buscador de conectores o un campo donde pegás la dirección de Kairos).
+  </Step>
+  <Step title="Iniciá sesión en Kairos">
+    Tu asistente te va a redirigir a iniciar sesión en Kairos, si todavía no estás logueado.
+  </Step>
+  <Step title="Revisá y autorizá el acceso">
+    Vas a ver una pantalla de consentimiento que indica qué asistente está pidiendo acceso y a qué organización. Revisala y elegí **Permitir** para confirmar, o **Denegar** para cancelar. La misma pantalla te muestra cómo revocar el acceso más adelante.
+  </Step>
+  <Step title="Listo">
+    A partir de ahí, tu asistente puede responder preguntas usando tus datos de Kairos en tiempo real, siempre de solo lectura y solo para la organización que autorizaste.
+  </Step>
+</Steps>
+
+## Seguridad y control
+
+- Podés revocar el acceso de un asistente en cualquier momento desde la misma pantalla de consentimiento.
+- Si preferís cortar el acceso de todos los asistentes conectados de una sola vez, pedinos que desactivemos la conexión para tu organización — el efecto es inmediato y no afecta los roles ni las cuentas de tu equipo.
+- Kairos guarda un registro de auditoría de cada consulta (qué información se leyó, cuándo y por parte de quién) sin guardar el contenido específico de la respuesta, para que puedas revisar el uso más adelante.
+- Hay un límite de uso pensado para evitar sobrecargas (30 consultas por minuto por persona conectada, 120 por organización). Solo lo vas a notar si automatizás consultas muy seguidas.
+
+<Tip>
+  El acceso se renueva periódicamente: si tu asistente deja de poder leer datos después de un tiempo, iniciá sesión de nuevo desde el mismo flujo de conexión.
+</Tip>

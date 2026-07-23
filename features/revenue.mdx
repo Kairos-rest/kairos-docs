@@ -1,0 +1,47 @@
+---
+title: "Ingresos y tendencia de ventas"
+sidebarTitle: "Ingresos"
+description: "El agente de ingresos sigue la tendencia de ventas de cada local, detecta caídas y te muestra qué platos y días rinden más."
+icon: "trending-up"
+tag: "NEW"
+---
+
+{/* diataxis: explanation */}
+
+Todos los días, el agente de ingresos compara las ventas del último mes contra el mes anterior, local por local. Así detectás si un local está creciendo o cayendo antes de que se note en la caja.
+
+## Qué mira todos los días
+
+Además de la tendencia general, el agente analiza tres cosas por local:
+
+<CardGroup cols={3}>
+  <Card title="Platos que más venden" icon="utensils">
+    Sobre los últimos seis meses, identifica qué platos generan más ingresos y cuáles se destacan en los momentos de mayor demanda (viernes y sábado).
+  </Card>
+  <Card title="Mejor y peor día" icon="calendar-days">
+    Compara la facturación entre el día más fuerte y el más flojo de la semana, para que sepas cuánto varía tu negocio según el día.
+  </Card>
+  <Card title="Oportunidades de precio" icon="tag">
+    Cuando un plato vende mucho y además rinde en horario pico, te sugiere subir su precio y estima el ingreso extra mensual, con un nivel de confianza según cuántos datos respaldan la sugerencia.
+  </Card>
+</CardGroup>
+
+Con esa información, el agente redacta una recomendación breve y concreta — por ejemplo, qué plato empujar o en qué día reforzar el equipo. Si no puede generar la recomendación, te muestra un mensaje con el plato más vendido en su lugar; nunca inventa un dato.
+
+<Note>
+  Si los ingresos de un local caen más del 10% respecto al período anterior, Kairos genera una alerta con el impacto estimado en dinero. Mientras esa alerta siga sin resolverse, no se repite en cada corrida del agente.
+</Note>
+
+## El tablero de ingresos
+
+El tablero de ingresos te deja explorar la tendencia con gráficos: ingresos por local, por plato y por día de la semana, además de una proyección para los próximos 30 días basada en el ritmo de ventas reciente.
+
+<Tip>
+  Si mirás un solo local, los montos aparecen en su moneda local. Si mirás todo el grupo, Kairos convierte todo a dólares para que puedas comparar locales con distinta moneda sin hacer la cuenta a mano.
+</Tip>
+
+## Comensales y ocupación
+
+La sección de comensales (covers) convive con ingresos porque parte de los mismos datos de venta. Ahí ves cuántos comensales atendiste por día, con una marca que indica si el número viene directo del punto de venta o es una estimación cuando falta ese dato en la venta.
+
+Para un local con la capacidad configurada, también ves el ingreso por hora-asiento disponible y el nivel de ocupación. La mezcla de canales (mostrador, take away, delivery) y el gasto promedio por comensal se calculan local por local, nunca combinados entre locales, para que el dato no confunda al mirar el grupo completo.

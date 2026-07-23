@@ -1,0 +1,44 @@
+---
+title: "Costos y márgenes por plato"
+sidebarTitle: "Costos y márgenes"
+description: "Kairos calcula el costo real de cada plato y te avisa cuando el margen cae por debajo del objetivo que definiste."
+icon: "calculator"
+tag: "NEW"
+---
+
+{/* diataxis: explanation */}
+
+Kairos calcula el costo real de cada plato a partir de su receta: qué ingredientes usa y en qué cantidad. Multiplica eso por el costo actual de cada ingrediente y así obtiene el costo real del plato.
+
+Con ese costo y el precio de venta, Kairos calcula el margen real de cada plato. Vos definís un margen objetivo para cada uno — el mínimo que querés ganar en esa venta. Kairos compara ambos números todos los días, y también apenas se registran ventas o compras nuevas, para que el margen que ves nunca esté muy desactualizado.
+
+## Cuándo te avisa
+
+Cuando el margen real de un plato cae por debajo del objetivo, Kairos genera una alerta. Si la caída es grande, la marca como prioritaria; si es más leve, la marca como una alerta normal. Cada alerta incluye una explicación breve de la causa probable y una estimación de cuánta plata estás perdiendo, calculada sobre las unidades vendidas en el último mes.
+
+## Qué ves en el panel de costos
+
+<CardGroup cols={2}>
+  <Card title="Ranking de márgenes" icon="chart-bar">
+    Un gráfico con los platos de peor margen, para detectar de un vistazo dónde estás perdiendo plata.
+  </Card>
+  <Card title="Platos en riesgo" icon="triangle-alert">
+    Una lista corta con los platos más urgentes para revisar primero.
+  </Card>
+  <Card title="Tabla completa" icon="table">
+    Costo real, precio de venta, margen y margen objetivo de cada plato de tu carta.
+  </Card>
+  <Card title="Simulador de precio" icon="sliders-horizontal">
+    Probá un precio nuevo y mirá cómo cambiaría el margen, sin guardar nada todavía.
+  </Card>
+</CardGroup>
+
+## Ajustar precio o margen objetivo
+
+Desde la tabla podés editar el precio de venta o el margen objetivo de cualquier plato. El cambio se refleja en el próximo cálculo de margen. Cambiar la receta de un plato — qué ingredientes usa o en qué cantidad — se hace desde la ficha del plato, no desde este panel.
+
+<Tip>
+  El costo de cada ingrediente se actualiza solo con cada compra que registrás. Si el costo de un ingrediente se ve raro de golpe, revisá la última factura cargada para ese ingrediente antes de confiar en el margen que muestra.
+</Tip>
+
+Para que el cálculo sea preciso, Kairos necesita que la receta de cada plato y el costo de cada ingrediente estén actualizados. Podés cargarlos a mano o en lote — mirá [importar datos por CSV](/features/import).

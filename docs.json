@@ -1,53 +1,107 @@
 {
   "$schema": "https://mintlify.com/docs.json",
   "theme": "mint",
-  "name": "Mintlify Starter Kit",
+  "name": "Kairos",
   "colors": {
-    "primary": "#16A34A",
-    "light": "#07C983",
-    "dark": "#15803D"
+    "primary": "#00B858",
+    "light": "#44D983",
+    "dark": "#009D4D"
   },
   "favicon": "/favicon.svg",
   "navigation": {
     "pages": [
       {
-        "group": "Getting Started",
+        "group": "Primeros pasos",
+        "icon": "rocket",
         "pages": [
           "index",
           "quickstart"
+        ]
+      },
+      {
+        "group": "Costos y desperdicio",
+        "icon": "calculator",
+        "pages": [
+          "features/cost",
+          "features/menu-pnl",
+          "features/waste",
+          "features/import"
+        ]
+      },
+      {
+        "group": "Ingresos y presupuesto",
+        "icon": "trending-up",
+        "pages": [
+          "features/revenue",
+          "features/budget",
+          "features/reconciliation",
+          "features/inventory"
+        ]
+      },
+      {
+        "group": "Facturas y proveedores",
+        "icon": "receipt",
+        "pages": [
+          "features/invoices",
+          "features/vendor",
+          "features/data-health"
+        ]
+      },
+      {
+        "group": "Reputación y competencia",
+        "icon": "star",
+        "pages": [
+          "features/reputation",
+          "features/competitors",
+          "features/onboarding"
+        ]
+      },
+      {
+        "group": "Personal y venues",
+        "icon": "users",
+        "pages": [
+          "features/staff-scheduling",
+          "features/venues",
+          "features/team-permissions"
+        ]
+      },
+      {
+        "group": "Alertas, reportes y chat",
+        "icon": "bell",
+        "pages": [
+          "features/alerts-decisions",
+          "features/reports",
+          "features/notifications",
+          "features/chat",
+          "features/mcp"
         ]
       }
     ],
     "global": {
       "anchors": [
         {
-          "anchor": "Documentation",
-          "href": "https://mintlify.com/docs",
-          "icon": "book-open-cover"
-        },
-        {
-          "anchor": "Blog",
-          "href": "https://mintlify.com/blog",
-          "icon": "newspaper"
+          "anchor": "Changelog",
+          "href": "/changelog",
+          "icon": "clock"
         }
       ]
     }
   },
   "logo": {
-    "light": "/logo/light.svg",
+    "light": "/logo/light.png",
     "dark": "/logo/dark.svg"
   },
   "navbar": {
     "links": [
       {
-        "label": "Support",
-        "href": "mailto:hi@mintlify.com"
+        "label": "Soporte",
+        "href": "mailto:soporte@kairos.rest"
       }
     ],
     "primary": {
       "type": "button",
-      "label": "Dashboard",
-      "href": "https://app.mintlify.com"
+      "label": "Ir al dashboard",
+      "href": "https://app.kairos.rest"
     }
   },
   "contextual": {
@@ -64,9 +118,7 @@
   },
   "footer": {
     "socials": {
-      "x": "https://x.com/mintlify",
-      "github": "https://github.com/mintlify",
-      "linkedin": "https://linkedin.com/company/mintlify"
+      "linkedin": "https://linkedin.com/company/kairos-rest"
     }
   }
 }

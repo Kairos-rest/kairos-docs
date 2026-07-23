@@ -1,0 +1,36 @@
+---
+title: "Desperdicio: teórico vs. real"
+sidebarTitle: "Desperdicio"
+description: "Kairos compara cuánto ingrediente deberías haber usado contra cuánto usaste realmente, y te avisa cuando la diferencia es demasiado grande."
+icon: "trash-2"
+tag: "NEW"
+---
+
+{/* diataxis: explanation */}
+
+Para cada ingrediente, Kairos calcula cuánto debería haberse consumido según tus recetas y lo que efectivamente vendiste. Eso es el **consumo teórico**. Después lo compara contra el **consumo real**, es decir lo que efectivamente se descontó de tu stock, incluyendo lo que registraste como desperdicio.
+
+La diferencia entre ambos es el desperdicio. Cuando esa diferencia supera el margen de tolerancia que definiste para el local, Kairos genera una alerta.
+
+## El margen de tolerancia es tuyo
+
+Cada local tiene su propio umbral de tolerancia al desperdicio, configurable desde la ficha del local. Por defecto es moderado, pero podés ajustarlo según cuánto desperdicio es normal en tu operación. Un local con mucha preparación en crudo puede tolerar más que uno que trabaja casi todo con insumos porcionados.
+
+## Cuándo te avisa
+
+Si un ingrediente supera la tolerancia definida, Kairos genera una alerta con una explicación breve de la causa probable. También estima cuánto te está costando ese desperdicio. Las diferencias más grandes se marcan como prioritarias.
+
+<Note>
+  La alerta mira si el desperdicio es **inusual** respecto de lo esperado. El resumen del panel de desperdicio, en cambio, muestra el costo total de todo lo que registraste como desperdicio en el período, sin filtrar por si fue inusual o no. Son dos vistas complementarias, no el mismo número.
+</Note>
+
+## Qué ves en el panel de desperdicio
+
+- **Costo por ingrediente**: cuánto te costó el desperdicio de cada ingrediente en el rango de fechas que elijas.
+- **Tendencia**: un gráfico con la evolución diaria del costo de desperdicio, con una línea de referencia para detectar picos.
+- **Proyección a 30 días**: una estimación de cuánto vas a perder en desperdicio si el patrón actual se mantiene.
+- **Motivo del desperdicio**: para cada ingrediente podés etiquetar por qué se generó — vencimiento, sobra de preparación, accidente o deterioro. Esa etiqueta se aplica a todo el desperdicio de ese ingrediente en el rango de fechas que estés mirando, no evento por evento.
+
+<Tip>
+  Para que este cálculo funcione, tus recetas y el stock del local tienen que estar cargados y actualizados. Podés cargarlos a mano o en lote — mirá [importar datos por CSV](/features/import).
+</Tip>

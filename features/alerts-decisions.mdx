@@ -1,0 +1,38 @@
+---
+title: "Alertas y decisiones"
+description: "Cómo funciona el ciclo de vida de una alerta y de dónde salen las recomendaciones priorizadas por plata."
+icon: "list-checks"
+tag: "NEW"
+---
+
+{/* diataxis: explanation */}
+
+Kairos te muestra dos cosas relacionadas pero distintas: **alertas**, que son avisos puntuales que generan los agentes cuando algo se sale de lo normal, y **decisiones**, una lista de oportunidades recomendadas que se recalcula cada vez que abrís el dashboard. Entender la diferencia te ayuda a saber dónde mirar según lo que necesitás resolver.
+
+## El ciclo de vida de una alerta
+
+Una alerta nace siempre de un agente (costos, desperdicio, reputación, presupuesto, ingresos, stock, proveedores o conciliación) — no existe una forma de crear una alerta a mano. Desde que aparece hasta que la cerrás, pasa por estos estados:
+
+**Abierta** → **(opcional: asignada a alguien del equipo, o pospuesta 1, 3 o 7 días)** → **resuelta**.
+
+En **Alertas** vas a encontrar el listado completo, filtrable por local y por fecha, con las no resueltas primero. Al abrir una alerta ves el detalle completo y, si tenés permisos de administrador, tres acciones:
+
+- **Marcar como resuelta**, para cerrarla una vez que actuaste.
+- **Asignarme esta alerta** (o asignarla a otro administrador activo de tu organización).
+- **Posponer**, para que vuelva a aparecer como pendiente en 1, 3 o 7 días.
+
+Muchas alertas —costos, desperdicio, reputación, presupuesto, ingresos— llegan con un impacto estimado en dinero. Ese número alimenta el resumen de arriba de la página: cuánto ahorraste este mes con lo que resolviste, y cuánto dinero está en juego en lo que sigue abierto. Alertas de stock, quiebre o proveedores todavía no tienen un cálculo confiable, así que no muestran ese número.
+
+## El motor de decisiones
+
+En el dashboard principal, aparte de las alertas, Kairos te muestra hasta cinco **decisiones recomendadas**, ordenadas por el impacto estimado en dinero. Cada una apunta a una oportunidad concreta:
+
+- **Subir un precio**: platos activos cuyo margen real quedó por debajo del objetivo, con ventas suficientes en el último mes. Kairos nunca sugiere un aumento mayor al 20%.
+- **Cambiar de proveedor**: ingredientes con desperdicio repetido en los últimos 30 días.
+- **Responder una reseña**: las reseñas más recientes de 2 estrellas o menos, marcadas como urgentes si son de 1 estrella.
+
+Cada decisión te lleva directo a la sección donde podés investigar y actuar: Costos, Stock o Reputación. A diferencia de las alertas, las decisiones no se guardan: se recalculan en cada visita y no tienen un estado propio de "resuelta". Por eso es normal ver una alerta y una decisión sobre el mismo tema desde ángulos distintos — son dos vistas complementarias, no un mismo registro.
+
+<Tip>
+  Si una decisión y una alerta apuntan al mismo problema, resolver una no cierra la otra automáticamente. Revisá ambas antes de dar el tema por cerrado.
+</Tip>
