@@ -1,0 +1,50 @@
+---
+title: "Ingeniería de menú y estado de resultados (P&L)"
+sidebarTitle: "Menú y P&L"
+description: "Clasificá tus platos por venta y margen, y mirá tu estado de resultados generado automáticamente."
+icon: "utensils"
+tag: "NEW"
+---
+
+{/* diataxis: explanation */}
+
+## Ingeniería de menú
+
+Kairos analiza cada plato de tu carta según dos variables: cuánto se vende y cuánto margen deja. Con eso, ubica cada plato en uno de cuatro grupos. La comparación es contra el resto de tu propia carta, no contra un número fijo.
+
+<CardGroup cols={2}>
+  <Card title="Estrellas" icon="star">
+    Venden mucho y dejan buen margen. La carta que querés tener.
+  </Card>
+  <Card title="Caballos de batalla" icon="horse">
+    Venden mucho pero con margen bajo. Motor de volumen, no de rentabilidad.
+  </Card>
+  <Card title="Enigmas" icon="help-circle">
+    Dejan buen margen pero venden poco. Candidatos a promocionar o reubicar en la carta.
+  </Card>
+  <Card title="Perros" icon="dog">
+    Venden poco y dejan poco margen. Candidatos a revisar o sacar de la carta.
+  </Card>
+</CardGroup>
+
+Además del cuadrante, el panel de menú te muestra:
+
+- **Combos frecuentes**: pares de platos que tus clientes piden juntos mucho más de lo esperable por azar. Útil para armar promociones o ubicarlos juntos en la carta.
+- **Horarios de venta**: en qué franja horaria y qué día se vende más cada plato. Si un plato se concentra fuerte en un solo horario, Kairos lo marca para que sepas que depende de ese momento del día.
+- **Platos fantasma**: platos que seguís mostrando en la carta pero que no se vendieron ni una vez en el período que estás mirando. Buenos candidatos para dar de baja o repensar.
+
+<Note>
+  Para dar de baja un plato fantasma, Kairos te lleva a la ficha del local o del plato. La baja se hace ahí, no desde esta vista.
+</Note>
+
+## Estado de resultados (P&L)
+
+Kairos arma automáticamente tu estado de resultados con los datos que ya tenés cargados: ventas, facturas de compra y sueldos del personal. No necesitás llevar una planilla aparte.
+
+El estado de resultados muestra, en orden: ventas, costo de mercadería vendida (ingredientes, bebidas, packaging), ganancia bruta, costo de personal, *prime cost*, gastos operativos y ganancia operativa. El costo de personal se prorratea cuando mirás un período que no es un mes completo.
+
+Podés verlo por local o para todos tus locales juntos, elegir el mes o mirar los últimos seis meses, y descargarlo en PDF para compartirlo o archivarlo.
+
+<Tip>
+  Solo se cuentan las facturas de compra ya confirmadas y aplicadas a tu stock. Una factura todavía en revisión no impacta el estado de resultados hasta que se confirma.
+</Tip>

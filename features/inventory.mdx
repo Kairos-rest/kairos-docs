@@ -1,0 +1,46 @@
+---
+title: "Stock e inventario"
+description: "Kairos proyecta cuántos días de stock te quedan por ingrediente y te avisa a tiempo para reponer antes de quedarte sin insumos."
+icon: "package"
+tag: "NEW"
+---
+
+{/* diataxis: explanation */}
+
+Todos los días, Kairos analiza el consumo real de cada ingrediente y proyecta cuántos días de stock te quedan antes de agotarlo. La idea es que te enteres con tiempo de sobra, no cuando el insumo ya falta en la cocina.
+
+## De dónde viene el dato de stock
+
+El stock de cada ingrediente se actualiza con cada movimiento real, nunca como un número que editás a mano sin dejar rastro:
+
+<CardGroup cols={3}>
+  <Card title="Compras" icon="truck">
+    Cada factura cargada y validada suma stock automáticamente, con el costo real de esa compra.
+  </Card>
+  <Card title="Ventas" icon="utensils">
+    Cada plato vendido resta stock según la receta que armaste para ese plato.
+  </Card>
+  <Card title="Ajustes manuales" icon="pencil">
+    Los ajustes que hacés desde el chat de Kairos también quedan registrados como movimiento.
+  </Card>
+</CardGroup>
+
+## Cómo proyecta el faltante
+
+Kairos mira el consumo de los últimos meses, con más peso en los días recientes, para estimar tu consumo diario promedio de cada ingrediente. Cuanto más historial de ventas tiene un ingrediente, mayor confianza tiene la proyección — y esa confianza se refleja en el gráfico de stock que ves en el detalle de cada ingrediente.
+
+<Note>
+  Un ingrediente entra en "riesgo de faltante" cuando le quedan 7 días de stock o menos. Si le quedan 3 días o menos, la alerta pasa a prioridad alta.
+</Note>
+
+## Cuánto reponer
+
+Para cada ingrediente en riesgo, Kairos sugiere una cantidad de reposición: cubre el consumo esperado hasta tu próximo pedido, respeta el stock mínimo que definiste para ese ingrediente y suma un margen de seguridad para que no vuelvas a quedar al límite enseguida.
+
+## El tablero de inventario
+
+El tablero muestra los ingredientes con mayor riesgo, un gráfico de proyección para el más urgente, una lista de reposición ordenada por prioridad y la tabla completa de ingredientes con una barra de nivel de stock. Al hacer clic en un ingrediente, vas a su detalle: historial de movimientos, proyección y qué platos lo usan.
+
+<Tip>
+  Kairos no te manda la misma alerta de faltante varias veces por semana para el mismo ingrediente — avisa una vez y espera a que se resuelva antes de avisar de nuevo.
+</Tip>

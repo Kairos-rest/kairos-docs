@@ -1,47 +1,56 @@
 ---
-title: "Quickstart"
-description: "Begin with a guide on the fastest path to a successful outcome"
+title: "Primeros pasos"
+sidebarTitle: "Quickstart"
+description: "De la invitación a tu primer tablero con datos reales, en cinco pasos."
+tag: "NEW"
 ---
 
-Describe how someone begins using your product. What is the first thing they need to do? Are there any prerequisites?
+{/* diataxis: tutorial */}
 
-A quickstart should take someone from zero to using your product. They'll get a quick win and a sense of what they can accomplish.
+Kairos funciona por invitación: no existe un registro abierto. Alguien de tu organización (o tu contacto en Kairos) te suma como usuario y desde ahí llegás a tu primer tablero en pocos minutos.
 
-## Prerequisites
+## Requisitos previos
 
-Before you begin, you must have:
+Antes de empezar necesitás:
 
-- Requirement one (for example, Node.js 18+, a free account, an API key)
-- Requirement two (for example, a compatible device, a compatible browser, a compatible operating system)
+- Un correo de invitación de Kairos para tu organización.
+- Datos básicos de al menos uno de tus locales (nombre, dirección) para crearlo durante la configuración inicial.
 
-## Get started
+## Configuración inicial
 
 <Steps>
-  <Step title="Install">
-    Describe how to install your product or sign up.
-
-    ```bash
-    npm install your-package
-    ```
+  <Step title="Aceptá la invitación">
+    Abrí el correo de invitación y hacé clic en el enlace para crear tu contraseña o iniciar sesión. Si ya tenés cuenta con ese correo, Kairos te suma directamente a la organización.
   </Step>
-  <Step title="Configure">
-    Describe any setup or configuration needed before first use.
-
-    ```bash
-    your-cli init
-    ```
+  <Step title="Creá tu primer local">
+    La primera vez que entrás, Kairos te lleva a un asistente de configuración. Este paso es obligatorio: no podés avanzar sin dar de alta al menos un local (nombre, dirección y datos básicos).
   </Step>
-  <Step title="Run it">
-    Show the first thing a user does to see it working.
-
-    ```bash
-    your-cli start
-    ```
+  <Step title="Cargá un plato de referencia">
+    Sumá un plato con su receta para que los agentes de costos y márgenes tengan algo real para analizar desde el primer día. Podés agregar el resto de tu menú después, desde el dashboard.
+  </Step>
+  <Step title="Mirá el resumen del día">
+    El asistente te muestra un primer resumen con la información cargada. A partir de ahí, cada visita al dashboard te va a mostrar las alertas activas ordenadas por impacto.
+  </Step>
+  <Step title="Listo — explorá tu dashboard">
+    Terminaste la configuración inicial. En el dashboard vas a encontrar una lista de tareas sugeridas (checklist) para conectar más datos: tu punto de venta, más locales, tu equipo y las alertas por email, Slack o Telegram.
   </Step>
 </Steps>
 
 <Tip>
-  Give people a way to get help. This could be a link to a support page, a chat with a customer support agent, or a forum for your product.
+  Si sos administrador y ya pasaste por la configuración inicial, podés volver a hacerla desde **Configuración → Repetir configuración inicial** sin perder los datos que ya cargaste.
+</Tip>
 
-  Example: Need help? Reach out to us at [support@yourcompany.com](mailto:support@yourcompany.com).
+## Y ahora, ¿qué?
+
+<CardGroup cols={2}>
+  <Card title="Conocé a los agentes" icon="bot" href="/features/cost">
+    Empezá por el agente de costos y márgenes, el más pedido en la configuración inicial.
+  </Card>
+  <Card title="Configurá tus alertas" icon="bell" href="/features/notifications">
+    Elegí si querés recibir avisos por email, Slack o Telegram, además del dashboard.
+  </Card>
+</CardGroup>
+
+<Tip>
+  ¿Necesitás ayuda? Escribinos a [soporte@kairos.rest](mailto:soporte@kairos.rest).
 </Tip>
