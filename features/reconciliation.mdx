@@ -1,0 +1,40 @@
+---
+title: "Conciliación de ventas, pagos y caja"
+sidebarTitle: "Conciliación"
+description: "Kairos cruza ventas, pagos, arqueo de caja y liquidaciones de tarjeta para detectar diferencias antes de que se acumulen."
+icon: "scale"
+tag: "NEW"
+---
+
+{/* diataxis: explanation */}
+
+Cada tres horas, apenas se sincroniza tu punto de venta, Kairos revisa que las ventas, los pagos y el cierre de caja de cada local cuadren entre sí. Son chequeos automáticos que comparan números contra números, sin intervención de inteligencia artificial de por medio.
+
+## Qué cruza
+
+<CardGroup cols={2}>
+  <Card title="Pagos vs. venta" icon="credit-card">
+    Que la suma de los pagos registrados en una venta cerrada coincida con su total. Una venta todavía sin ningún pago cargado no se marca — recién se revisa cuando ya tiene al menos un pago.
+  </Card>
+  <Card title="Arqueo de caja" icon="banknote">
+    Que lo contado al cerrar la caja coincida con lo que el sistema esperaba tener, según las ventas y pagos del turno.
+  </Card>
+  <Card title="Ventas sin facturar" icon="receipt">
+    Ventas cerradas que todavía no generaron su comprobante fiscal, dejando pasar un margen para que la factura electrónica termine de procesarse — así no te alertamos por algo que se resuelve solo en minutos.
+  </Card>
+  <Card title="Liquidación de tarjeta" icon="landmark">
+    Compara lo que tu punto de venta registró en pagos con tarjeta contra lo que la liquidadora efectivamente depositó ese día. Es el único chequeo contra una fuente externa al POS: subís el archivo de liquidaciones y Kairos hace el cruce.
+  </Card>
+</CardGroup>
+
+<Note>
+  Cuando aparece una diferencia relevante, Kairos genera una alerta puntual — por ejemplo, una venta con un pago incompleto o un día cuya liquidación no cierra — y evita duplicarla mientras siga sin resolverse.
+</Note>
+
+## El tablero de conciliación
+
+Sobre los últimos 30 días, el tablero te muestra: pagos agrupados por método, resultados de arqueo, cuánto de tu facturación real todavía no tiene comprobante fiscal (y qué porcentaje sí lo tiene), propinas y descuentos aplicados, y cuántas alertas de conciliación siguen abiertas.
+
+<Tip>
+  Conciliación es una función que Kairos habilita por organización. Si no la ves en tu menú de Finanzas, escribinos a [soporte@kairos.rest](mailto:soporte@kairos.rest) para activarla.
+</Tip>

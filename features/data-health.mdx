@@ -1,0 +1,56 @@
+---
+title: "Salud de los datos"
+sidebarTitle: "Salud de datos"
+description: "Un puntaje por área que te muestra qué tan lista está tu información para confiar en cada función de Kairos."
+icon: "activity"
+tag: "NEW"
+---
+
+{/* diataxis: reference */}
+
+La salud de los datos te muestra qué tan completa está la información cargada en cada área de Kairos. Cuanto más alto el puntaje de un área, más podés confiar en lo que esa función te muestra. La encontrás en **Datos → Salud**, disponible para el propietario y los administradores de la organización.
+
+## Cómo leer el puntaje
+
+Vas a ver un puntaje global — el promedio de todas las áreas — y un puntaje individual por cada una de las ocho áreas que Kairos evalúa. Cada área se marca como:
+
+- **Listo** — hay datos suficientes para confiar en esa función.
+- **Parcial** — hay algo cargado, pero falta información para aprovecharla del todo.
+- **Faltante** — todavía no hay datos suficientes en esa área.
+
+Si tu organización tiene más de un local, podés filtrar el puntaje por local desde el selector de la parte superior.
+
+## Las ocho áreas que evalúa
+
+<CardGroup cols={2}>
+  <Card title="Analítica de ingresos" icon="trending-up" href="/features/revenue">
+    Necesita ventas importadas de forma continua en los últimos 30 días.
+  </Card>
+  <Card title="Márgenes" icon="calculator" href="/features/menu-pnl">
+    Necesita recetas con el costo de cada ingrediente cargado, para calcular el margen real de cada plato.
+  </Card>
+  <Card title="Pronóstico de inventario" icon="package" href="/features/inventory">
+    Necesita stock mínimo y actual definidos, más historial reciente de consumo.
+  </Card>
+  <Card title="Análisis de merma" icon="trash-2" href="/features/waste">
+    Necesita movimientos de merma registrados desde cocina en los últimos 30 días.
+  </Card>
+  <Card title="Reputación" icon="star" href="/features/reputation">
+    Necesita reseñas importadas o el agente de reputación configurado con tus locales.
+  </Card>
+  <Card title="Inteligencia competitiva" icon="eye" href="/features/competitors">
+    Necesita competidores agregados y una lectura reciente de sus datos.
+  </Card>
+  <Card title="Costo de personal" icon="users" href="/features/staff-scheduling">
+    Necesita empleados cargados con su salario, para calcular el costo de nómina.
+  </Card>
+  <Card title="Presupuesto" icon="wallet" href="/features/budget">
+    Necesita un presupuesto del período actual y facturas cargadas con categoría.
+  </Card>
+</CardGroup>
+
+Cada tarjeta te lleva directo a la sección donde podés cargar lo que falta.
+
+<Tip>
+  ¿Recién cargaste datos y el puntaje no cambió todavía? Puede tardar unos minutos en actualizarse.
+</Tip>

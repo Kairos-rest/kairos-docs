@@ -1,0 +1,58 @@
+---
+title: "Importar datos por CSV"
+sidebarTitle: "Importar CSV"
+description: "Cargá tus compras, ingredientes, ventas y recetas en Kairos subiendo un archivo CSV, paso a paso."
+icon: "upload"
+tag: "NEW"
+---
+
+{/* diataxis: how-to */}
+
+Si ya tenés tus compras, ingredientes, ventas o recetas en una planilla, podés traerlos a Kairos sin cargarlos uno por uno. El asistente de importación te guía por cuatro pasos: subir el archivo, revisar el mapeo de columnas, previsualizar los resultados y confirmar.
+
+<Note>
+  Solo se aceptan archivos CSV. Si tu planilla está en Excel, exportala como CSV antes de subirla.
+</Note>
+
+<Steps>
+  <Step title="Descargá la plantilla">
+    Desde la sección de importación (Costos, Proveedores, Personal, o la importación general), descargá la plantilla del tipo de dato que vas a cargar. Trae solo los encabezados de columna que Kairos espera.
+  </Step>
+  <Step title="Completá tu archivo CSV">
+    Completá la plantilla, o adaptá tu propia planilla, y guardala como CSV. No hace falta que las columnas estén en un orden exacto ni que se llamen igual: las vas a poder mapear en el siguiente paso.
+  </Step>
+  <Step title="Subí el archivo">
+    Subí el CSV desde el asistente. Kairos lee los encabezados y te muestra una vista previa de las primeras filas.
+  </Step>
+  <Step title="Revisá el mapeo de columnas">
+    Kairos intenta emparejar automáticamente cada columna de tu archivo con el campo correspondiente. Revisá el mapeo propuesto y corregilo donde haga falta antes de seguir.
+  </Step>
+  <Step title="Mirá la vista previa">
+    Kairos valida cada fila sin guardar nada todavía. Vas a ver cuántas filas son válidas, cuáles tienen errores, y advertencias no bloqueantes — por ejemplo fechas fuera de lo esperado, o platos e ingredientes nuevos que se van a crear automáticamente.
+  </Step>
+  <Step title="Confirmá la importación">
+    Si hay al menos una fila válida, podés confirmar. Kairos procesa el archivo en tandas. Si algo falla a mitad de camino, te muestra exactamente cuántas filas entraron y desde qué línea retomar.
+  </Step>
+</Steps>
+
+## Qué podés importar
+
+| Tipo de dato | Dónde importarlo |
+|---|---|
+| Compras, ingredientes, ventas y recetas | Costos → Importar |
+| Proveedores | Proveedores → Importar |
+| Personal | Personal → Importar |
+
+<Warning>
+  Si subís el mismo archivo de personal dos veces, se van a crear registros duplicados — a diferencia de compras, ventas o recetas, que detectan y evitan duplicados automáticamente. Revisá el historial de importaciones antes de volver a subir un archivo de personal.
+</Warning>
+
+<Tip>
+  Si un ingrediente aparece con distintas unidades en distintas filas de recetas, Kairos usa la unidad de la primera fila que encuentra y te avisa con una advertencia, pero igual importa las filas siguientes. Revisá que las unidades sean consistentes antes de subir el archivo.
+</Tip>
+
+<Note>
+  Los archivos con más de 100.000 filas no se pueden importar en una sola carga. Si tu planilla es más grande, dividila en partes más chicas.
+</Note>
+
+Solo los administradores de la cuenta pueden importar datos. Cualquier usuario con acceso puede descargar las plantillas y ver el historial de importaciones.

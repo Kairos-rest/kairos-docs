@@ -1,0 +1,67 @@
+---
+title: "Equipo y permisos"
+description: "Los tres roles de Kairos, qué puede hacer cada uno por local, y el registro de auditoría."
+icon: "users"
+tag: "NEW"
+---
+
+{/* diataxis: reference */}
+
+Kairos tiene tres roles de organización. El rol se asigna por persona y aplica en toda la organización; encima de eso, un Administrador puede otorgar permisos de edición puntuales por local.
+
+## Roles de organización
+
+| Rol | Qué puede hacer |
+|---|---|
+| **Administrador** | Control total: gestiona el equipo, los locales, las integraciones y los permisos por local. Es el único rol con acceso a **Configuración → Equipo** y **Configuración → Permisos**. |
+| **Encargado** | Solo lectura en todos los locales por default. Un Administrador puede otorgarle capacidades de edición puntuales en un local específico. |
+| **Solo lectura** | Ve toda la información de la organización pero no puede modificar nada, en ningún local, sin excepción. |
+
+<Note>
+  Un Administrador no puede cambiarse el rol a sí mismo ni a otro Administrador desde la pantalla de equipo. Kairos siempre protege al último Administrador activo de la organización: nunca podés quedarte sin ninguno.
+</Note>
+
+La pantalla de **Equipo** solo cambia el rol de organización de una persona. No otorga ni quita permisos de edición en un local puntual — eso se hace desde **Permisos**.
+
+## Permisos por local
+
+Un Administrador siempre tiene todas las capacidades en todos los locales. Un Encargado, en cambio, arranca en solo lectura y solo gana capacidades de edición en un local cuando un Administrador se las otorga explícitamente ahí. Un usuario de solo lectura nunca las tiene, sin importar lo que se configure.
+
+Las capacidades que un Administrador puede otorgar a un Encargado, local por local, son:
+
+<CardGroup cols={2}>
+  <Card title="Facturas" icon="receipt">
+    Cargar, editar y gestionar facturas de ese local.
+  </Card>
+  <Card title="Aprobaciones" icon="check-circle">
+    Aprobar movimientos que requieren revisión en ese local.
+  </Card>
+  <Card title="Presupuestos" icon="wallet">
+    Crear y ajustar presupuestos del local.
+  </Card>
+  <Card title="Exportar" icon="download">
+    Descargar reportes y datos del local.
+  </Card>
+  <Card title="Personal y turnos" icon="calendar-days">
+    Gestionar legajos y armar el cronograma de turnos.
+  </Card>
+  <Card title="Inventario y menú" icon="package">
+    Editar stock, ingredientes y platos del local.
+  </Card>
+  <Card title="Competencia" icon="binoculars">
+    Gestionar el seguimiento de competidores del local.
+  </Card>
+  <Card title="Alertas" icon="bell">
+    Resolver y gestionar las alertas de ese local.
+  </Card>
+</CardGroup>
+
+Se otorgan desde **Configuración → Permisos**: elegís el local y la persona, y marcás qué puede hacer ahí. Sacar todas las marcas vuelve a dejar a esa persona en solo lectura en ese local. Ninguna de estas capacidades restringe la lectura de datos, ni afecta el alta de locales o la conexión de integraciones — eso sigue siendo exclusivo de un Administrador.
+
+## Registro de auditoría
+
+Kairos deja registro de las acciones sensibles del equipo: otorgar o revocar un permiso, dar de alta o de baja a una persona del personal, publicar un cronograma de turnos, entre otras. Cada registro guarda quién hizo el cambio y cuándo, para que siempre puedas reconstruirlo.
+
+## Acceso externo (integraciones de IA)
+
+Conectar Kairos a un asistente externo (por ejemplo, vía MCP) también respeta estos roles: solo un Administrador activo de la organización puede habilitarlo, y ese acceso nunca alcanza datos de otra organización. Ver [MCP](/features/mcp) para el detalle de esta integración.
