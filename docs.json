@@ -12,6 +12,7 @@
     "pages": [
       {
         "group": "Primeros pasos",
+        "icon": "rocket",
         "pages": [
           "index",
           "quickstart"
@@ -19,6 +20,7 @@
       },
       {
         "group": "Costos y desperdicio",
+        "icon": "calculator",
         "pages": [
           "features/cost",
           "features/menu-pnl",
@@ -28,6 +30,7 @@
       },
       {
         "group": "Ingresos y presupuesto",
+        "icon": "trending-up",
         "pages": [
           "features/revenue",
           "features/budget",
@@ -37,6 +40,7 @@
       },
       {
         "group": "Facturas y proveedores",
+        "icon": "receipt",
         "pages": [
           "features/invoices",
           "features/vendor",
@@ -45,6 +49,7 @@
       },
       {
         "group": "Reputación y competencia",
+        "icon": "star",
         "pages": [
           "features/reputation",
           "features/competitors",
@@ -53,6 +58,7 @@
       },
       {
         "group": "Personal y venues",
+        "icon": "users",
         "pages": [
           "features/staff-scheduling",
           "features/venues",
@@ -61,6 +67,7 @@
       },
       {
         "group": "Alertas, reportes y chat",
+        "icon": "bell",
         "pages": [
           "features/alerts-decisions",
           "features/reports",
