@@ -495,10 +495,20 @@ def main() -> int:
         write_state(main_sha)
         return 0
 
-    # While a drafted PR is still unreviewed, re-draft from the commit it was
-    # based on. Otherwise the fresh-from-main branch would be force-pushed with
-    # only the newest range and the earlier range's page edits would be lost
-    # behind an already-advanced cursor.
+    # This check must come BEFORE the open-PR base logic below. An open PR
+    # already covers pr_base...cursor, so with no new commits there is nothing to
+    # do — comparing from pr_base instead would re-draft the identical range on
+    # every tick, burning a full triage + page-edit spend and force-pushing a
+    # slightly different draft (temperature is non-zero) out from under whoever
+    # is mid-review, twice an hour, until they merge.
+    if cursor == main_sha:
+        log("no new commits since last run")
+        return 0
+
+    # There IS new work. While a drafted PR is still unreviewed, re-draft from
+    # the commit it was based on: the branch is recut fresh from `main`, so
+    # drafting only the newest range would force-push the earlier range's page
+    # edits away with the cursor already advanced past them.
     stored_pr_base = state.get("pr_base_sha")
     if open_pr is not None and stored_pr_base:
         compare_base = stored_pr_base
@@ -519,9 +529,10 @@ def main() -> int:
             # The base commit is gone (force-push or GC on the app repo). Retrying
             # forever would wedge the pipeline silently, so re-bootstrap and
             # accept one undocumented range.
+            orphan = f" PR #{open_pr} is now orphaned and needs manual review." if open_pr else ""
             log(
                 f"compare base {compare_base[:7]} no longer exists in {APP_REPO} (404) — "
-                f"re-bootstrapping cursor to {main_sha[:7]}; this range will NOT be documented"
+                f"re-bootstrapping cursor to {main_sha[:7]}; this range will NOT be documented.{orphan}"
             )
             write_state(main_sha)
             return 0
@@ -723,12 +734,14 @@ def main() -> int:
             detail = "; ".join(changelog_problems)
             log(f"changelog summary rejected, using the fallback text: {detail}")
             caps.append(f"Resumen del changelog rechazado por el validador ({detail}); se usó el texto genérico.")
-        append_changelog_entry(
+        seeded = append_changelog_entry(
             os.path.join(WORKDIR, "changelog.mdx"),
             changelog_mdx,
             datetime.now(timezone.utc).strftime("%Y-%m-%d"),
             page_links,
         )
+        if seeded:
+            log("changelog.mdx was missing on the base branch, seeded a minimal one")
         changed_files.append("changelog.mdx")
 
         body = build_pr_body(

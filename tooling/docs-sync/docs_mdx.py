@@ -253,7 +253,9 @@ def sanitize_scalar(value: str, max_len: int = 200) -> str:
     time, after merge.
     """
     collapsed = re.sub(r"\s+", " ", value).strip()
-    return collapsed.replace('"', "'")[:max_len].strip()
+    # Backslashes go too: inside a double-quoted YAML scalar they start an escape
+    # sequence, and an invalid one only fails at Mintlify build time, after merge.
+    return collapsed.replace("\\", "").replace('"', "'")[:max_len].strip()
 
 
 def build_new_page(title: str, sidebar_title: str, description: str, icon: str,

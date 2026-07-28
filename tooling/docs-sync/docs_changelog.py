@@ -8,6 +8,7 @@ deferred, and refused to do.
 
 from __future__ import annotations
 
+import os
 import re
 
 from docs_mdx import validate_body
@@ -20,6 +21,9 @@ CHANGELOG_FALLBACK = (
 )
 
 
+# Returned unvalidated when a drafted summary is rejected, which is safe only
+# because it is a constant written here. Do not make it env-configurable without
+# running it through `validate_body` first.
 FALLBACK_SUMMARY = "Actualizamos la documentación de las funcionalidades que cambiaron en esta versión."
 
 
@@ -34,8 +38,15 @@ def vet_changelog_summary(summary_mdx: str) -> tuple[str, list[str]]:
 
     Returns `(summary, problems)`. On any problem the caller gets the terse
     fallback text instead, so a rejected draft still records that docs moved.
+
+    Headings are allowed here, unlike in a feature-page section. The heading ban
+    exists because `parse_page` does section surgery on feature pages, so a `## `
+    inside a section body becomes a real heading on the next parse. changelog.mdx
+    is only ever appended to — never parsed into sections — so a heading inside an
+    `<Update>` block is inert, and the entries already published use them. Banning
+    them here would buy no safety and send most runs to the fallback text.
     """
-    problems = validate_body(summary_mdx)
+    problems = validate_body(summary_mdx, allow_headings=True)
     # `validate_body` balances <Update> pairs, but a *balanced* injected pair is
     # still a forged entry — reject the tag outright, it is ours to write.
     if re.search(r"</?Update\b", summary_mdx):
@@ -51,17 +62,20 @@ def escape_link_text(text: str) -> str:
 
 
 def append_changelog_entry(path: str, summary_mdx: str, date_label: str,
-                           page_links: list[tuple[str, str]]) -> None:
+                           page_links: list[tuple[str, str]]) -> bool:
     """Prepend a dated `<Update>` block to changelog.mdx.
 
     Inserted immediately before the first existing `<Update>` so entries stay
     newest-first *and* the page's intro prose stays above them. (The KAI-246
     version inserted right after the Diátaxis marker, which pushed the intro
     paragraph down between entries — see the orphaned line this release fixes.)
+
+    Returns True when the file was missing and had to be seeded, so the caller
+    can log that without this module needing the job's logger.
     """
-    if not os.path.exists(path):
+    seeded = not os.path.exists(path)
+    if seeded:
         # `main` may not have changelog.mdx yet — self-heal instead of crashing.
-        log("changelog.mdx missing on base branch, seeding a minimal one")
         content = CHANGELOG_FALLBACK
     else:
         with open(path) as f:
@@ -88,6 +102,7 @@ def append_changelog_entry(path: str, summary_mdx: str, date_label: str,
 
     with open(path, "w") as f:
         f.write(content[:insert_at] + entry + content[insert_at:])
+    return seeded
 
 
 def build_pr_body(app_repo: str, model: str, main_sha: str, compare_base: str,

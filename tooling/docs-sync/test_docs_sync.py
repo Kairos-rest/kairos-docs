@@ -11,9 +11,18 @@ Run: python3 -m unittest discover -s tooling/docs-sync -p 'test_*.py'
 
 from __future__ import annotations
 
+import ast
+import os
+import tempfile
 import unittest
 
-from docs_changelog import escape_link_text, vet_changelog_summary
+from docs_changelog import (
+    CHANGELOG_FALLBACK,
+    append_changelog_entry,
+    build_pr_body,
+    escape_link_text,
+    vet_changelog_summary,
+)
 from docs_diff import is_customer_facing, scope_diff_to_paths, select_release_diff
 from docs_mdx import (
     PageParseError,
@@ -442,6 +451,125 @@ class TestReviewRegressions(unittest.TestCase):
         self.assertTrue(validate_body("Kairos guarda todo en bases de datos de tu local."))
 
 
+CHANGELOG = '''---
+title: "Changelog"
+description: "Novedades de producto."
+---
+
+{/* diataxis: reference */}
+
+Cada entrada resume qué cambió en Kairos y qué página lo cubre.
+
+<Update label="2026-07-01" description="Actualización automática">
+  Entrada vieja.
+</Update>
+'''
+
+
+class TestChangelogWriting(unittest.TestCase):
+    """`append_changelog_entry` writes to a public page and had zero coverage.
+
+    Its only caller sits inside a try/except that does not catch NameError, so an
+    import missed during a refactor was a guaranteed crash on every publishing
+    run while the rest of the suite stayed green. These tests call it for real.
+    """
+
+    def _write(self, content: str | None) -> str:
+        path = os.path.join(tempfile.mkdtemp(), "changelog.mdx")
+        if content is not None:
+            with open(path, "w") as f:
+                f.write(content)
+        return path
+
+    def test_entry_lands_above_the_newest_existing_update(self):
+        path = self._write(CHANGELOG)
+        seeded = append_changelog_entry(path, "Resumen nuevo del local.", "2026-07-28", [])
+        self.assertFalse(seeded)
+        with open(path) as f:
+            out = f.read()
+        self.assertLess(out.index('label="2026-07-28"'), out.index('label="2026-07-01"'))
+
+    def test_intro_prose_stays_above_every_entry(self):
+        # The KAI-246 insertion point put entries right after the diataxis marker,
+        # which pushed this paragraph down between entries on the live site.
+        path = self._write(CHANGELOG)
+        append_changelog_entry(path, "Resumen nuevo del local.", "2026-07-28", [])
+        with open(path) as f:
+            out = f.read()
+        self.assertLess(out.index("Cada entrada resume"), out.index("<Update"))
+
+    def test_repeated_entries_stay_newest_first(self):
+        path = self._write(CHANGELOG)
+        append_changelog_entry(path, "Primera del local.", "2026-07-28", [])
+        append_changelog_entry(path, "Segunda del local.", "2026-07-29", [])
+        with open(path) as f:
+            out = f.read()
+        self.assertLess(out.index('label="2026-07-29"'), out.index('label="2026-07-28"'))
+        self.assertLess(out.index("Cada entrada resume"), out.index("<Update"))
+
+    def test_missing_file_is_seeded_and_reported(self):
+        path = self._write(None)
+        seeded = append_changelog_entry(path, "Resumen del local.", "2026-07-28", [])
+        self.assertTrue(seeded)
+        with open(path) as f:
+            out = f.read()
+        self.assertIn('title: "Changelog"', out)
+        self.assertIn("Resumen del local.", out)
+
+    def test_page_links_are_rendered_and_escaped(self):
+        path = self._write(CHANGELOG)
+        append_changelog_entry(
+            path, "Resumen del local.", "2026-07-28",
+            [("Rese[n]as", "features/reputation"), ("Facturas", "features/invoices")],
+        )
+        with open(path) as f:
+            out = f.read()
+        self.assertIn("[Rese(n)as](/features/reputation)", out)
+        self.assertIn("[Facturas](/features/invoices)", out)
+
+    def test_fallback_template_passes_its_own_gate(self):
+        # If the seeded file could not itself be re-read, the self-heal path would
+        # produce a page the site cannot render.
+        self.assertIn("diataxis", CHANGELOG_FALLBACK)
+
+
+class TestPrBody(unittest.TestCase):
+    def _body(self, reports, deferred=(), caps=()) -> str:
+        return build_pr_body(
+            "Kairos-rest/app", "qwen3.6", "b" * 40, "a" * 40, 3,
+            {"included_paths": ["messages/es.json"], "dropped_paths": ["lib/services/x.ts"],
+             "ignored_count": 7, "no_patch_paths": ["components/logo.png"]},
+            list(reports), list(deferred), list(caps),
+        )
+
+    def test_every_outcome_is_reported_distinctly(self):
+        body = self._body([
+            {"slug": "invoices", "outcome": "edited", "applied": ["replace_section 'X'"], "rejected": ["bad body"]},
+            {"slug": "whatsapp", "outcome": "created", "title": "WhatsApp", "nav_note": "grupo raro"},
+            {"slug": "cost", "outcome": "rejected", "detail": "leaks Prisma"},
+            {"slug": "waste", "outcome": "failed", "detail": "NAN inalcanzable"},
+            {"slug": "chat", "outcome": "skipped", "detail": "sin cambios"},
+        ])
+        for expected in ("features/invoices.mdx", "bad body", "WhatsApp", "grupo raro",
+                         "leaks Prisma", "NAN inalcanzable", "sin cambios"):
+            self.assertIn(expected, body)
+
+    def test_caps_and_budget_drops_are_never_silent(self):
+        body = self._body([], deferred=["cost"], caps=["Límite de 4 página(s) por corrida alcanzado."])
+        self.assertIn("lib/services/x.ts", body)      # dropped by budget
+        self.assertIn("components/logo.png", body)    # no patch from GitHub
+        self.assertIn("cost", body)                   # deferred
+        self.assertIn("Límite de 4", body)            # cap
+        self.assertIn("7", body)                      # ignored count
+
+    def test_body_links_the_real_commit_range(self):
+        body = self._body([])
+        self.assertIn(f"compare/{'a' * 40}...{'b' * 40}", body)
+
+    def test_empty_report_says_so_rather_than_looking_complete(self):
+        self.assertIn("Ninguna página", self._body([]))
+
+
 class TestNav(unittest.TestCase):
     def _config(self) -> dict:
         return {
@@ -474,6 +602,76 @@ class TestNav(unittest.TestCase):
     def test_page_exists_finds_pages_in_any_group(self):
         self.assertTrue(page_exists(self._config(), "features/invoices"))
         self.assertFalse(page_exists(self._config(), "features/nope"))
+
+
+def _bound_names(node: ast.AST) -> set[str]:
+    """Names a scope binds: params, assignments, loop/with/except targets, defs."""
+    bound: set[str] = set()
+    args = getattr(node, "args", None)
+    if isinstance(args, ast.arguments):
+        for a in (*args.posonlyargs, *args.args, *args.kwonlyargs):
+            bound.add(a.arg)
+        for a in (args.vararg, args.kwarg):
+            if a:
+                bound.add(a.arg)
+
+    for child in ast.walk(node):
+        # Do not descend into a nested function's own bindings; it gets its own pass.
+        if isinstance(child, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)) and child is not node:
+            bound.add(child.name)
+            continue
+        if isinstance(child, ast.Name) and isinstance(child.ctx, (ast.Store, ast.Del)):
+            bound.add(child.id)
+        elif isinstance(child, ast.ExceptHandler) and child.name:
+            bound.add(child.name)
+        elif isinstance(child, (ast.Import, ast.ImportFrom)):
+            for alias in child.names:
+                bound.add((alias.asname or alias.name).split(".")[0])
+        elif isinstance(child, (ast.Global, ast.Nonlocal)):
+            bound.update(child.names)
+    return bound
+
+
+class TestNoUndefinedNames(unittest.TestCase):
+    """Every name a function reads must resolve to a binding or a builtin.
+
+    This exists because moving `append_changelog_entry` between modules left it
+    calling `os` and `log`, neither of which was defined in its new home. Nothing
+    caught it: the modules imported fine, 53 tests passed, and the `NameError`
+    only fired when the function ran — on a cron, in production, inside a
+    try/except that does not catch `NameError`.
+
+    AST rather than bytecode: `os.path.exists` is one `Name` load plus two
+    `Attribute` nodes, so attribute names never masquerade as globals. It needs no
+    dependency, which is what makes it runnable on the VPS.
+    """
+
+    MODULES = ("docs-sync.py", "docs_changelog.py", "docs_diff.py",
+               "docs_mdx.py", "docs_nav.py", "docs_prompts.py")
+
+    def test_every_name_read_resolves(self):
+        import builtins
+
+        here = os.path.dirname(os.path.abspath(__file__))
+        findings: list[str] = []
+
+        for filename in self.MODULES:
+            with open(os.path.join(here, filename)) as f:
+                tree = ast.parse(f.read(), filename)
+            module_scope = _bound_names(tree) | set(vars(builtins)) | {"__file__", "__name__"}
+
+            functions = [n for n in ast.walk(tree)
+                         if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef))]
+            for fn in functions:
+                # Enclosing-scope names: this file's functions are either top level
+                # or nested one deep, so module scope plus own bindings covers it.
+                visible = module_scope | _bound_names(fn)
+                for child in ast.walk(fn):
+                    if isinstance(child, ast.Name) and isinstance(child.ctx, ast.Load):
+                        if child.id not in visible:
+                            findings.append(f"{filename}:{child.lineno} {fn.name} -> {child.id}")
+
+        self.assertEqual(findings, [], f"unresolved names: {findings}")
 
 
 if __name__ == "__main__":

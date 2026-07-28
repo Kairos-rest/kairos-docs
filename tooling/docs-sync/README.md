@@ -47,10 +47,24 @@ past them. That range would never be drafted again, and nothing in the PR would
 say so.
 
 So `state.json` records `pr_base_sha`: the commit the currently-open PR was
-drafted from. While that PR is open, every run re-compares from there, redrafts
-the whole undocumented range, and force-pushes a PR that always describes the
-full picture. Merging or closing the PR ends it — the next run finds no open PR
-and falls back to the cursor.
+drafted from. While that PR is open *and there are new commits*, every run
+re-compares from there, redrafts the whole undocumented range, and force-pushes a
+PR that always describes the full picture. With no new commits the run is a
+no-op — otherwise it would redraft an identical range every 30 minutes and
+force-push a slightly different draft out from under whoever is mid-review.
+
+Two consequences worth knowing:
+
+- **Closing the bot PR without merging means that range is intentionally never
+  documented.** The cursor has already advanced; the next run finds no open PR
+  and starts from the cursor. That is the designed way to say "don't document
+  this" — but it is deliberate, not recoverable.
+- **Before the first run of this version**, merge or close any open
+  `docs-sync/auto` PR. State written by the previous version has no
+  `pr_base_sha`, so the first tick would fall back to the cursor and force-push
+  that PR's content away — the exact bug this fixes, replayed once. Alternatively,
+  hand-write `pr_base_sha` into `state.json`. (At the time this shipped there was
+  no open bot PR, so nothing to do.)
 
 ## What stops a bad edit reaching main
 
@@ -159,6 +173,8 @@ credential every Kairos script on that box already sources.
 | A section body fails validation | that action dropped, reported in the PR body |
 | Changelog summary fails validation | replaced with generic text, reported in the PR body |
 | Open PR unreviewed when the next deploy lands | run re-drafts from the PR's base so no range is lost |
+| Open PR unreviewed and no new commits | no-op; the PR already covers its range |
+| Bot PR closed without merging | that range is intentionally never documented (see above) |
 | More than 4 target pages | extras deferred and named in the PR body |
 | Run exceeds 20 minutes | remaining pages deferred and named in the PR body |
 | Compare exceeds 300 files | GitHub's ceiling; flagged in the PR body as possibly incomplete |
