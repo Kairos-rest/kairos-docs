@@ -607,19 +607,27 @@ class TestNav(unittest.TestCase):
 def _bound_names(node: ast.AST) -> set[str]:
     """Names a scope binds: params, assignments, loop/with/except targets, defs."""
     bound: set[str] = set()
-    args = getattr(node, "args", None)
-    if isinstance(args, ast.arguments):
+
+    def add_args(args: ast.arguments) -> None:
         for a in (*args.posonlyargs, *args.args, *args.kwonlyargs):
             bound.add(a.arg)
         for a in (args.vararg, args.kwarg):
             if a:
                 bound.add(a.arg)
 
+    own_args = getattr(node, "args", None)
+    if isinstance(own_args, ast.arguments):
+        add_args(own_args)
+
     for child in ast.walk(node):
         # Do not descend into a nested function's own bindings; it gets its own pass.
         if isinstance(child, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)) and child is not node:
             bound.add(child.name)
             continue
+        # Lambdas get no separate pass, so treat their params as bound here —
+        # otherwise the first uniquely-named lambda parameter fails the suite.
+        if isinstance(child, ast.Lambda):
+            add_args(child.args)
         if isinstance(child, ast.Name) and isinstance(child.ctx, (ast.Store, ast.Del)):
             bound.add(child.id)
         elif isinstance(child, ast.ExceptHandler) and child.name:
@@ -665,7 +673,12 @@ class TestNoUndefinedNames(unittest.TestCase):
             for fn in functions:
                 # Enclosing-scope names: this file's functions are either top level
                 # or nested one deep, so module scope plus own bindings covers it.
+                # A nested def's params are added too, since the Load walk below
+                # descends into it and they would otherwise look unresolved.
                 visible = module_scope | _bound_names(fn)
+                for inner in ast.walk(fn):
+                    if isinstance(inner, (ast.FunctionDef, ast.AsyncFunctionDef)) and inner is not fn:
+                        visible |= _bound_names(inner)
                 for child in ast.walk(fn):
                     if isinstance(child, ast.Name) and isinstance(child.ctx, ast.Load):
                         if child.id not in visible:

@@ -485,7 +485,6 @@ def main() -> int:
     try:
         head = gh_api(f"/repos/{APP_REPO}/commits/{BASE_BRANCH}", GH_READ_TOKEN)
         main_sha = head["sha"]
-        open_pr = find_open_pr()
     except (urllib.error.URLError, ValueError, http.client.HTTPException, KeyError, TypeError) as e:
         log(f"GitHub unreachable, skipping run without advancing cursor: {e}")
         return 0
@@ -509,6 +508,13 @@ def main() -> int:
     # the commit it was based on: the branch is recut fresh from `main`, so
     # drafting only the newest range would force-push the earlier range's page
     # edits away with the cursor already advanced past them.
+    # Queried after the idle short-circuit above, so a quiet tick costs no API call.
+    try:
+        open_pr = find_open_pr()
+    except (urllib.error.URLError, ValueError, http.client.HTTPException, KeyError, TypeError) as e:
+        log(f"could not check for an open docs PR, skipping run without advancing cursor: {e}")
+        return 0
+
     stored_pr_base = state.get("pr_base_sha")
     if open_pr is not None and stored_pr_base:
         compare_base = stored_pr_base
