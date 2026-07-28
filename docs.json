@@ -8,6 +8,9 @@
     "dark": "#009D4D"
   },
   "favicon": "/favicon.svg",
+  "icons": {
+    "library": "lucide"
+  },
   "navigation": {
     "pages": [
       {
@@ -72,6 +75,7 @@
           "features/alerts-decisions",
           "features/reports",
           "features/notifications",
+          "features/whatsapp",
           "features/chat",
           "features/mcp"
         ]
