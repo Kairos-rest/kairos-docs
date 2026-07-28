@@ -41,11 +41,15 @@ BANNED_PATTERNS: tuple[tuple[str, str], ...] = (
     (r"\bnpm\b|\bpnpm\b", "package manager"),
     (r"\bmigrations?\b|\bmigraci[oó]n(es)?\b", "migration"),
     (r"\bendpoints?\b", "endpoint"),
-    (r"\bbase de datos\b|\bdatabase\b", "database"),
+    (r"\bbases? de datos\b|\bdatabases?\b", "database"),
     (r"\bsql\b", "SQL"),
     (r"\b(lib|app/api|components|prisma)/[a-z0-9._/-]+", "repo path"),
     (r"\.(tsx?|jsx?|sql|prisma)\b", "source file extension"),
-    (r"```(ts|tsx|js|jsx|json|sql|bash|sh|python)", "code fence"),
+    # Ban the fence marker itself, not a list of languages: a bare ``` or an
+    # unlisted one (```text, ```yaml) is just as much a code block, and an
+    # accepted fence is worse than cosmetic — `parse_page` has no fence
+    # awareness, so a `## ` line inside one becomes a real section heading.
+    (r"```", "code fence"),
 )
 
 # Mintlify components that must open and close in pairs. An imbalance breaks
@@ -117,14 +121,26 @@ def parse_page(source: str) -> MdxPage:
     return MdxPage(fm.group(1), dia.group(0), intro, sections)
 
 
-def validate_body(body: str) -> list[str]:
-    """Return a list of problems with model-authored MDX. Empty list = accept."""
+def validate_body(body: str, allow_headings: bool = False) -> list[str]:
+    """Return a list of problems with model-authored MDX. Empty list = accept.
+
+    `allow_headings` is only true for a whole new page, whose body is *supposed*
+    to be a series of level-2 sections. For a section edit it must stay false:
+    a `## ` line inside a section body would be invisible to `apply_actions`
+    (which validates one section at a time) but becomes a real heading the next
+    time the page is parsed. That is how the model can smuggle in a heading it
+    was never allowed to create, duplicate an existing one, or — worse — leave a
+    Mintlify closing tag orphaned across runs once the new "section" splits its
+    opener from its closer. Per-body component balance is not per-page balance.
+    """
     problems: list[str] = []
     stripped = body.strip()
     if len(stripped) < MIN_BODY_CHARS:
         problems.append(f"body too short ({len(stripped)} chars)")
     if re.search(r"\b(TODO|TBD|FIXME|lorem ipsum|XXX)\b", stripped, re.IGNORECASE):
         problems.append("body contains a placeholder marker")
+    if not allow_headings and re.search(r"^#{1,6}\s", stripped, re.MULTILINE):
+        problems.append("section body must not contain its own heading")
 
     lowered = stripped.lower()
     for pattern, label in BANNED_PATTERNS:
@@ -226,19 +242,33 @@ def set_frontmatter_key(frontmatter: str, key: str, value: str) -> str:
     return frontmatter.rstrip() + "\n" + line
 
 
+def sanitize_scalar(value: str, max_len: int = 200) -> str:
+    """Make a model-supplied string safe to interpolate into a quoted YAML scalar.
+
+    Without this, a `description` containing a newline plus `---` terminates the
+    frontmatter block early and leaks the rest into the page body — and the
+    round-trip parse check does not catch it, because `FRONTMATTER_RE` is
+    non-greedy and happily accepts the truncated block. An embedded `"` is the
+    cheaper version of the same problem: invalid YAML that only fails at build
+    time, after merge.
+    """
+    collapsed = re.sub(r"\s+", " ", value).strip()
+    return collapsed.replace('"', "'")[:max_len].strip()
+
+
 def build_new_page(title: str, sidebar_title: str, description: str, icon: str,
                    diataxis: str, body_mdx: str) -> str:
     """Assemble a brand-new feature page.
 
     Frontmatter is written here rather than by the model so title/description/
-    icon/tag always exist and are always quoted the way the rest of the site
-    quotes them.
+    icon/tag always exist, are always quoted the way the rest of the site quotes
+    them, and cannot break out of their own block.
     """
     fm = "\n".join([
-        f'title: "{title}"',
-        f'sidebarTitle: "{sidebar_title}"',
-        f'description: "{description}"',
-        f'icon: "{icon}"',
+        f'title: "{sanitize_scalar(title)}"',
+        f'sidebarTitle: "{sanitize_scalar(sidebar_title, 40)}"',
+        f'description: "{sanitize_scalar(description)}"',
+        f'icon: "{re.sub(r"[^a-z0-9-]", "", icon.lower()) or "file-text"}"',
         'tag: "NEW"',
     ])
     return f"---\n{fm}\n---\n\n{{/* diataxis: {diataxis} */}}\n\n{body_mdx.strip()}\n"

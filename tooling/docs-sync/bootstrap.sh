@@ -39,6 +39,13 @@ export DOCS_SYNC_HOME="$PIPELINE_HOME"
 # Fast-forward the code checkout. This clone is read-only as far as the pipeline
 # is concerned — the working clone it commits from is a separate directory
 # (`kairos-docs-checkout`), so a force-push there can never disturb this one.
+#
+# Note this reset happens BEFORE the Python process takes its flock, so a
+# straggler run that outlives the next cron tick can have these .py files swapped
+# under it. That is harmless only because every import is top-level at startup:
+# by the time the reset lands, the running process has already read everything it
+# needs. Do not add a lazy/deferred import to the pipeline without revisiting
+# this — take the lock in the shell instead (`flock -n`).
 if [ ! -d "$TOOLING_CHECKOUT/.git" ]; then
   git clone --quiet --branch "$DOCS_REF" "$DOCS_REMOTE" "$TOOLING_CHECKOUT"
 else

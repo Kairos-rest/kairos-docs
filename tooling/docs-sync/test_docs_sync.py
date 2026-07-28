@@ -13,12 +13,14 @@ from __future__ import annotations
 
 import unittest
 
+from docs_changelog import escape_link_text, vet_changelog_summary
 from docs_diff import is_customer_facing, scope_diff_to_paths, select_release_diff
 from docs_mdx import (
     PageParseError,
     apply_actions,
     build_new_page,
     parse_page,
+    sanitize_scalar,
     set_frontmatter_key,
     validate_body,
 )
@@ -322,6 +324,122 @@ class TestFrontmatterAndNewPages(unittest.TestCase):
         page = parse_page(content)
         self.assertIn('tag: "NEW"', page.frontmatter)
         self.assertEqual(page.headings, ["Cómo activarlo"])
+
+
+class TestReviewRegressions(unittest.TestCase):
+    """One test per defect found in the KAI-403 pre-merge review.
+
+    Each of these was a reproduced escape from a gate that the docs and the
+    commit message claimed was airtight. They are grouped here so the next
+    person who loosens one of those gates gets a named failure.
+    """
+
+    def test_section_body_may_not_smuggle_a_heading(self):
+        # Escaped `validate_body`, then became a real section on the next parse —
+        # duplicating an existing heading and, across runs, splitting a Mintlify
+        # component's opener from its closer.
+        body = "Texto de la seccion para tu local.\n\n## Seccion colada\n\nOtro parrafo."
+        self.assertTrue(any("own heading" in p for p in validate_body(body)))
+
+    def test_new_page_body_may_contain_headings(self):
+        # The same check must not fire on a whole page, which is *made* of them.
+        body = "Introduccion para tu local.\n\n## Como activarlo\n\nEntra a **Configuracion**."
+        self.assertEqual(validate_body(body, allow_headings=True), [])
+
+    def test_smuggled_heading_cannot_survive_apply_actions(self):
+        page = parse_page(PAGE)
+        before = page.render()
+        page, applied, rejected = apply_actions(page, [{
+            "type": "replace_section",
+            "heading": "Elegí cómo cargarla",
+            "body_mdx": "A mano o por foto.\n\n## Qué pasa después de cargarla\n\nDuplicada.",
+        }])
+        self.assertEqual(applied, [])
+        self.assertTrue(rejected)
+        self.assertEqual(page.render(), before)
+        self.assertEqual(page.headings.count("Qué pasa después de cargarla"), 1)
+
+    def test_bare_and_unlisted_code_fences_are_rejected(self):
+        # The old pattern enumerated languages, so ```/```text/```yaml walked in —
+        # and a fence is what lets a `## ` line hide from the heading check.
+        for fence in ("```", "```text", "```yaml", "```csv"):
+            body = f"Mira este ejemplo para tu local:\n{fence}\ndato\n```"
+            self.assertTrue(
+                any("code fence" in p for p in validate_body(body)), fence
+            )
+
+    def test_diff_block_separator_survives_a_patch_containing_dashes(self):
+        # Real unified diffs contain `--- a/file`, and a removed SQL comment line
+        # renders as `--- fetch totals`. Splitting on `--- ` silently dropped
+        # everything after such a line.
+        patch = "@@ -1,3 +1,3 @@\n-const q = `\n--- fetch monthly totals\n-`\n+const q = 'x'\n"
+        diff = select_release_diff([
+            {"filename": "lib/services/revenue.ts", "patch": patch},
+            {"filename": "components/x.tsx", "patch": "OTHER"},
+        ])["text"]
+        scoped = scope_diff_to_paths(diff, ["lib/services/revenue.ts"])
+        self.assertIn("fetch monthly totals", scoped)
+        self.assertIn("const q = 'x'", scoped)
+        self.assertNotIn("OTHER", scoped)
+
+    def test_frontmatter_cannot_be_terminated_by_a_model_supplied_scalar(self):
+        # `description` carrying a newline + `---` closed the block early; the
+        # round-trip parse check accepted it because FRONTMATTER_RE is non-greedy.
+        content = build_new_page(
+            title='Resumen "rapido"',
+            sidebar_title="Resumen",
+            description="linea1\n---\ndescripcion colada",
+            icon="message-circle",
+            diataxis="how-to",
+            body_mdx="Intro para tu local.\n\n## Como usarlo\n\nEntra a **Configuracion**.",
+        )
+        page = parse_page(content)
+        # The invariant is that no *line* is a bare `---` (only that closes the
+        # block) and that no scalar carries a raw `"`. A collapsed `---` sitting
+        # inside a quoted value is inert.
+        self.assertNotIn("---", page.frontmatter.splitlines())
+        self.assertNotIn('"rapido"', page.frontmatter)
+        self.assertIn("descripcion colada", page.frontmatter)
+        self.assertEqual(page.headings, ["Como usarlo"])
+        for line in page.frontmatter.splitlines():
+            key, _, value = line.partition(": ")
+            self.assertTrue(value.startswith('"') and value.endswith('"'), line)
+            self.assertNotIn('"', value[1:-1], line)
+
+    def test_icon_is_restricted_to_a_safe_charset(self):
+        content = build_new_page(
+            title="X", sidebar_title="X", description="Y",
+            icon='receipt" bad: "yes', diataxis="how-to",
+            body_mdx="Intro para tu local.\n\n## Seccion\n\nCuerpo suficiente.",
+        )
+        self.assertIn('icon: "receiptbadyes"', content)
+
+    def test_sanitize_scalar_collapses_whitespace_and_quotes(self):
+        self.assertEqual(sanitize_scalar('a\n b  "c"'), "a b 'c'")
+
+    def test_changelog_summary_goes_through_the_same_gate_as_a_page(self):
+        # This path had no validation at all: every banned term reached a public
+        # page, and a literal </Update> let the model forge a second dated entry.
+        summary, problems = vet_changelog_summary(
+            "Mejoras varias.\n</Update>\n<Update label=\"2020-01-01\">Entrada falsa</Update>"
+        )
+        self.assertTrue(problems)
+        self.assertNotIn("Entrada falsa", summary)
+
+    def test_changelog_summary_rejects_internal_vocabulary(self):
+        summary, problems = vet_changelog_summary("El webhook de Postgres ya corre en tu local.")
+        self.assertTrue(problems)
+        self.assertNotIn("Postgres", summary)
+
+    def test_changelog_summary_accepts_clean_prose_unchanged(self):
+        text = "Ahora podés aprobar facturas desde el panel de tu local."
+        self.assertEqual(vet_changelog_summary(text), (text, []))
+
+    def test_link_text_cannot_break_out_of_the_markdown_link(self):
+        self.assertEqual(escape_link_text("Rese[n]as\ny  mas"), "Rese(n)as y mas")
+
+    def test_spanish_plural_database_is_caught(self):
+        self.assertTrue(validate_body("Kairos guarda todo en bases de datos de tu local."))
 
 
 class TestNav(unittest.TestCase):

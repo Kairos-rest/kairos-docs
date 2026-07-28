@@ -65,6 +65,16 @@ ALLOWED_MESSAGE_FILES: tuple[str, ...] = ("messages/en.json", "messages/es.json"
 MAX_PATCH_CHARS_PER_FILE = 6_000
 MAX_TOTAL_PATCH_CHARS = 120_000
 
+# Block separator for the assembled diff. Deliberately NOT `--- <path>`: unified
+# diff bodies are full of lines starting with `--- ` (file headers inside a
+# patch) or `-- ` (a removed SQL/comment line), so a `---` prefix cannot be
+# distinguished from content. `scope_diff_to_paths` splits on this marker, and a
+# mis-split silently drops the rest of a file's patch — the worst kind of
+# truncation, because the model still gets *something* and the fallback never
+# fires. No diff content line can start with `==== `.
+BLOCK_PREFIX = "==== FILE: "
+BLOCK_SUFFIX = " ===="
+
 
 def is_customer_facing(path: str) -> bool:
     """True when a changed file could plausibly explain a user-visible change."""
@@ -134,9 +144,10 @@ def select_release_diff(
         if len(patch) > max_file_chars:
             patch = patch[:max_file_chars]
             truncated = True
-        header = f"--- {c['path']} ({c['status']})"
+        header = f"{BLOCK_PREFIX}{c['path']} ({c['status']})"
         if truncated:
             header += " [patch truncated]"
+        header += BLOCK_SUFFIX
         block = f"{header}\n{patch}\n"
         if used + len(block) > max_total_chars:
             dropped.append(c["path"])
@@ -173,11 +184,11 @@ def scope_diff_to_paths(diff_text: str, paths: list[str]) -> str:
             kept.append("".join(buffer))
 
     for line in diff_text.splitlines(keepends=True):
-        if line.startswith("--- "):
+        if line.startswith(BLOCK_PREFIX):
             flush()
             buffer = [line]
-            # Header shape: `--- <path> (<status>)[ [patch truncated]]`
-            current_path = line[4:].split(" (")[0].strip()
+            # Header shape: `==== FILE: <path> (<status>)[ [patch truncated]] ====`
+            current_path = line[len(BLOCK_PREFIX):].split(" (")[0].strip()
         else:
             buffer.append(line)
     flush()

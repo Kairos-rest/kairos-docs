@@ -31,7 +31,7 @@ Safety properties kept from KAI-246:
   * Fail-soft — if GitHub or NAN is unreachable the run is skipped and the
     cursor is NOT advanced, so the range is retried on the next trigger.
   * Single-flight via flock; an overlapping run is a no-op, not a queue.
-  * One branch (`docs-sync/auto`), always cut fresh from `main`, force-pushed —
+  * One branch (`docs-sync/auto`), cut fresh from `main`, force-pushed —
     repeated deploys update the open PR instead of stacking PRs.
   * Every cap (commits, diff budget, pages per run, wall-clock) is logged and
     reported in the PR body. Nothing is silently truncated.
@@ -43,13 +43,21 @@ Safety properties added here:
   * Every model-authored body passes `docs_mdx.validate_body` before it lands —
     internal vocabulary (Prisma, Redis, repo paths, code fences) and unbalanced
     Mintlify components are rejected per-section, and the rejection is reported
-    in the PR body instead of failing the run.
+    in the PR body instead of failing the run. The changelog entry goes through
+    the same gate: it is the most-written artifact on a public site.
+  * While a drafted PR is unreviewed, the next run re-drafts from that PR's base
+    (`pr_base_sha` in state) rather than the cursor. Because the branch is recut
+    from `main` each time, drafting only the newest range would force-push the
+    previous range's page edits away with the cursor already past them.
+  * The cursor advances only on a definite answer. An unusable triage response is
+    retried, bounded by MAX_TRIAGE_FAILURES so a confused model cannot wedge it.
 """
 
 from __future__ import annotations
 
 import base64
 import fcntl
+import http.client
 import json
 import os
 import re
@@ -62,6 +70,12 @@ from datetime import datetime, timezone
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
+from docs_changelog import (  # noqa: E402
+    FALLBACK_SUMMARY,
+    append_changelog_entry,
+    build_pr_body,
+    vet_changelog_summary,
+)
 from docs_diff import scope_diff_to_paths, select_release_diff  # noqa: E402
 from docs_mdx import (  # noqa: E402
     PageParseError,
@@ -88,6 +102,9 @@ WORKDIR = os.path.join(STATE_DIR, "kairos-docs-checkout")
 
 MAX_COMMITS = int(os.environ.get("DOCS_SYNC_MAX_COMMITS", "60"))
 MAX_PAGES_PER_RUN = int(os.environ.get("DOCS_SYNC_MAX_PAGES", "4"))
+# Consecutive unusable triage responses tolerated before the range is abandoned.
+# Without a ceiling, a model that cannot produce JSON wedges the cursor forever.
+MAX_TRIAGE_FAILURES = int(os.environ.get("DOCS_SYNC_MAX_TRIAGE_FAILURES", "5"))
 # qwen3.6 thinking-mode latency is high-variance and this runs on a 30-minute
 # cron, not a user-facing request.
 NAN_TIMEOUT = float(os.environ.get("DOCS_SYNC_NAN_TIMEOUT", "180"))
@@ -105,6 +122,7 @@ NAN_MODEL = os.environ.get("NAN_MODEL", "qwen3.6")
 
 SLUG_RE = re.compile(r"^[a-z][a-z0-9-]{2,39}$")
 VALID_DIATAXIS = ("tutorial", "how-to", "reference", "explanation")
+
 
 def log(msg: str) -> None:
     ts = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S")
@@ -140,8 +158,24 @@ def save_state(state: dict) -> None:
     os.replace(tmp, STATE_FILE)
 
 
-def advance_cursor(sha: str) -> None:
-    save_state({"last_sha": sha, "updated_at": datetime.now(timezone.utc).isoformat()})
+def write_state(last_sha: str, pr_base: str | None = None, triage_failures: int = 0) -> None:
+    """Persist the cursor plus the two pieces of context it needs to be correct.
+
+    `pr_base_sha` is the commit an *open* docs PR was drafted from. While that PR
+    is unreviewed, every run must re-compare from there rather than from the
+    cursor: the bot branch is always recut from `main`, so drafting only the
+    newest range would force-push away the previous range's page edits — with the
+    cursor already advanced past them, they would never be drafted again.
+
+    `triage_failures` counts consecutive unusable triage responses, so a
+    persistently confused model cannot wedge the cursor forever.
+    """
+    state: dict = {"last_sha": last_sha, "updated_at": datetime.now(timezone.utc).isoformat()}
+    if pr_base:
+        state["pr_base_sha"] = pr_base
+    if triage_failures:
+        state["triage_failures"] = triage_failures
+    save_state(state)
 
 
 # ------------------------------------------------------------------------- NAN
@@ -153,7 +187,17 @@ def call_nan(system: str, user: str) -> dict:
     Returns `{}` when the model answers with something that is not the JSON
     object we asked for. That is a content failure, not a transport failure, so
     it must not look like "NAN unreachable" to the caller — a `{}` here means
-    "the model had nothing usable to say", and the run continues.
+    "the model had nothing usable to say".
+
+    Callers must NOT read `{}` as "no changes": a confused model and a model
+    reporting an uneventful release are different answers, and only the second
+    one may advance the cursor.
+
+    A 200 carrying a non-JSON body (a proxy error page) and a connection dropped
+    mid-body are also normalised to `{}` here. `json.JSONDecodeError` is a
+    `ValueError` and `IncompleteRead` an `http.client.HTTPException` — neither is
+    an `OSError`, so left uncaught they would escape every handler upstream and
+    kill a run that had already written pages to the working clone.
     """
     payload = {
         "model": NAN_MODEL,
@@ -171,8 +215,12 @@ def call_nan(system: str, user: str) -> dict:
     req.add_header("Authorization", f"Bearer {NAN_API_KEY}")
     req.add_header("Content-Type", "application/json")
     req.add_header("User-Agent", USER_AGENT)
-    with urllib.request.urlopen(req, timeout=NAN_TIMEOUT) as resp:
-        raw = json.loads(resp.read().decode())
+    try:
+        with urllib.request.urlopen(req, timeout=NAN_TIMEOUT) as resp:
+            raw = json.loads(resp.read().decode())
+    except (ValueError, http.client.HTTPException) as e:
+        log(f"NAN returned an unreadable response body: {e}")
+        return {}
 
     try:
         text = raw["choices"][0]["message"]["content"].strip()
@@ -197,10 +245,26 @@ def call_nan(system: str, user: str) -> dict:
 # ------------------------------------------------------------------------- git
 
 
+def redact(text: str) -> str:
+    """Strip the PAT out of git output before it reaches the log.
+
+    The working clone's origin embeds `x-access-token:<PAT>@github.com`, and git
+    quotes the full URL back in its error messages ("unable to access
+    'https://x-access-token:ghp_...@github.com/...'"). Those messages end up in
+    the cron log, which is not where the token is supposed to live.
+    """
+    return re.sub(r"x-access-token:[^@/\s]+@", "x-access-token:***@", text)
+
+
 def run(cmd: list[str], cwd: str | None = None) -> str:
-    r = subprocess.run(cmd, cwd=cwd, capture_output=True, text=True, timeout=180)
+    try:
+        r = subprocess.run(cmd, cwd=cwd, capture_output=True, text=True, timeout=180)
+    except subprocess.TimeoutExpired as e:
+        # TimeoutExpired is neither RuntimeError nor OSError, so it would escape
+        # every handler upstream as a raw traceback.
+        raise RuntimeError(f"command timed out: {' '.join(cmd)}") from e
     if r.returncode != 0:
-        raise RuntimeError(f"command failed: {' '.join(cmd)}\n{r.stderr}")
+        raise RuntimeError(f"command failed: {' '.join(cmd)}\n{redact(r.stderr)}")
     return r.stdout.strip()
 
 
@@ -218,54 +282,6 @@ def ensure_docs_checkout() -> None:
 
 
 # ------------------------------------------------------------------- changelog
-
-CHANGELOG_FALLBACK = (
-    '---\ntitle: "Changelog"\ndescription: "Novedades de producto reflejadas en '
-    'esta documentación."\n---\n\n{/* diataxis: reference */}\n\n'
-    "Cada entrada resume qué cambió en Kairos y qué página de la documentación lo "
-    "cubre.\n"
-)
-
-
-def append_changelog_entry(summary_mdx: str, date_label: str, page_links: list[tuple[str, str]]) -> None:
-    """Prepend a dated `<Update>` block to changelog.mdx.
-
-    Inserted immediately before the first existing `<Update>` so entries stay
-    newest-first *and* the page's intro prose stays above them. (The KAI-246
-    version inserted right after the Diátaxis marker, which pushed the intro
-    paragraph down between entries — see the orphaned line this release fixes.)
-    """
-    path = os.path.join(WORKDIR, "changelog.mdx")
-    if not os.path.exists(path):
-        # `main` may not have changelog.mdx yet — self-heal instead of crashing.
-        log("changelog.mdx missing on base branch, seeding a minimal one")
-        content = CHANGELOG_FALLBACK
-    else:
-        with open(path) as f:
-            content = f.read()
-
-    body = summary_mdx.strip()
-    if page_links:
-        links = ", ".join(f"[{title}](/{ref})" for title, ref in page_links)
-        body += f"\n\n  Páginas actualizadas: {links}"
-
-    entry = (
-        f'\n<Update label="{date_label}" description="Actualización automática">\n'
-        f"  {body}\n"
-        f"</Update>\n"
-    )
-
-    first_update = content.find("\n<Update ")
-    if first_update != -1:
-        insert_at = first_update
-    else:
-        marker_match = re.search(r"\{/\*\s*diataxis:[^}]*\*/\}\n", content)
-        insert_at = marker_match.end() if marker_match else len(content.rstrip())
-        content = content.rstrip() + "\n" if not marker_match else content
-
-    with open(path, "w") as f:
-        f.write(content[:insert_at] + entry + content[insert_at:])
-
 
 # ------------------------------------------------------------------ page edits
 
@@ -364,7 +380,9 @@ def create_new_page(slug: str, target: dict, diff_text: str, nav_config: dict) -
     if not body:
         return {"slug": slug, "outcome": "skipped", "detail": "model declined to draft the page"}
 
-    problems = validate_body(body)
+    # A whole page is supposed to be a series of level-2 sections, so headings
+    # are allowed here and only here.
+    problems = validate_body(body, allow_headings=True)
     if problems:
         return {"slug": slug, "outcome": "rejected", "detail": "; ".join(problems)}
     if not re.search(r"^##\s+\S", body, re.MULTILINE):
@@ -402,70 +420,6 @@ def create_new_page(slug: str, target: dict, diff_text: str, nav_config: dict) -
 # ------------------------------------------------------------------------- PR
 
 
-def build_pr_body(main_sha: str, cursor: str, num_commits: int, diff_meta: dict,
-                  reports: list[dict], deferred: list[str], caps: list[str]) -> str:
-    lines = [
-        f"Borrador automático del pipeline de documentación. Resume "
-        f"{num_commits} commit(s) desplegados a producción, rango "
-        f"[`{cursor[:7]}...{main_sha[:7]}`](https://github.com/{APP_REPO}/compare/{cursor}...{main_sha}).",
-        "",
-        f"Generado por NAN (`{NAN_MODEL}`) en dos pasos: triage del diff y edición por página.",
-        "**Requiere revisión humana. Nunca se mergea automáticamente.**",
-        "",
-        "## Páginas",
-        "",
-    ]
-
-    if not reports:
-        lines.append("Ninguna página de funcionalidad necesitó cambios en este rango.")
-    for r in reports:
-        slug = r["slug"]
-        outcome = r["outcome"]
-        if outcome == "edited":
-            lines.append(f"- **`features/{slug}.mdx`** — editada: {', '.join(r['applied'])}")
-            for rej in r.get("rejected", []):
-                lines.append(f"  - descartado por el validador: {rej}")
-        elif outcome == "created":
-            lines.append(f"- **`features/{slug}.mdx`** — página nueva: {r['title']}")
-            if r.get("nav_note"):
-                lines.append(f"  - revisar ubicación en el menú: {r['nav_note']}")
-        elif outcome == "rejected":
-            lines.append(f"- `{slug}` — **rechazada por el validador**, requiere edición manual: {r['detail']}")
-        elif outcome == "failed":
-            lines.append(f"- `{slug}` — **falló**, requiere edición manual: {r['detail']}")
-        else:
-            lines.append(f"- `{slug}` — sin cambios: {r.get('detail', '')}")
-
-    if deferred:
-        lines += [
-            "",
-            f"## Diferidas a la próxima corrida ({len(deferred)})",
-            "",
-            "Se alcanzó el límite de páginas por corrida o el tiempo máximo. "
-            "Estas páginas siguen desactualizadas y hay que revisarlas a mano:",
-            "",
-        ]
-        lines += [f"- `{s}`" for s in deferred]
-
-    lines += ["", "## Cobertura del diff", ""]
-    lines.append(f"- Archivos analizados: {len(diff_meta['included_paths'])}")
-    lines.append(f"- Archivos descartados por no ser visibles al cliente: {diff_meta['ignored_count']}")
-    if diff_meta["dropped_paths"]:
-        lines.append(
-            f"- **Recortados por presupuesto de contexto ({len(diff_meta['dropped_paths'])})**: "
-            + ", ".join(f"`{p}`" for p in diff_meta["dropped_paths"][:20])
-        )
-    if diff_meta["no_patch_paths"]:
-        lines.append(
-            f"- Sin diff disponible de GitHub ({len(diff_meta['no_patch_paths'])}): "
-            + ", ".join(f"`{p}`" for p in diff_meta["no_patch_paths"][:20])
-        )
-    for cap in caps:
-        lines.append(f"- {cap}")
-
-    return "\n".join(lines)
-
-
 def commit_and_push(paths: list[str], main_sha: str) -> None:
     # Explicit paths, never `git add -A`: the checkout is shared with the state
     # dir's siblings and a stray file must not ride along into a docs PR.
@@ -479,13 +433,18 @@ def commit_and_push(paths: list[str], main_sha: str) -> None:
     run(["git", "push", "--force-with-lease", "origin", f"HEAD:{DOCS_BRANCH}"], cwd=WORKDIR)
 
 
-def open_or_update_pr(body: str) -> None:
+def find_open_pr() -> int | None:
+    """Number of the open bot PR, or None. Read before comparing, not after."""
     owner = DOCS_REPO.split("/")[0]
     existing = gh_api(
         f"/repos/{DOCS_REPO}/pulls?head={owner}:{DOCS_BRANCH}&state=open", GH_DOCS_TOKEN
     )
-    if existing:
-        number = existing[0]["number"]
+    return existing[0]["number"] if existing else None
+
+
+def open_or_update_pr(body: str) -> None:
+    number = find_open_pr()
+    if number is not None:
         # Refresh the body too — the previous run's report described a different
         # commit range and would otherwise mislead the reviewer.
         gh_api(f"/repos/{DOCS_REPO}/pulls/{number}", GH_DOCS_TOKEN, method="PATCH", body={"body": body})
@@ -526,29 +485,56 @@ def main() -> int:
     try:
         head = gh_api(f"/repos/{APP_REPO}/commits/{BASE_BRANCH}", GH_READ_TOKEN)
         main_sha = head["sha"]
-    except (urllib.error.URLError, KeyError, TypeError) as e:
+        open_pr = find_open_pr()
+    except (urllib.error.URLError, ValueError, http.client.HTTPException, KeyError, TypeError) as e:
         log(f"GitHub unreachable, skipping run without advancing cursor: {e}")
         return 0
 
     if cursor is None:
         log(f"no cursor on disk — bootstrapping to current {BASE_BRANCH} ({main_sha[:7]}), no draft this run")
-        advance_cursor(main_sha)
+        write_state(main_sha)
         return 0
 
-    if cursor == main_sha:
+    # While a drafted PR is still unreviewed, re-draft from the commit it was
+    # based on. Otherwise the fresh-from-main branch would be force-pushed with
+    # only the newest range and the earlier range's page edits would be lost
+    # behind an already-advanced cursor.
+    stored_pr_base = state.get("pr_base_sha")
+    if open_pr is not None and stored_pr_base:
+        compare_base = stored_pr_base
+        log(f"PR #{open_pr} still open — re-drafting from its base {compare_base[:7]}, not the cursor")
+    else:
+        compare_base = cursor
+    # Kept across cursor advances so an open PR's range never falls out of scope.
+    keep_pr_base = compare_base if open_pr is not None else None
+
+    if compare_base == main_sha:
         log("no new commits since last run")
         return 0
 
     try:
-        compare = gh_api(f"/repos/{APP_REPO}/compare/{cursor}...{main_sha}", GH_READ_TOKEN)
-    except (urllib.error.URLError, KeyError, TypeError) as e:
+        compare = gh_api(f"/repos/{APP_REPO}/compare/{compare_base}...{main_sha}", GH_READ_TOKEN)
+    except urllib.error.HTTPError as e:
+        if e.code == 404:
+            # The base commit is gone (force-push or GC on the app repo). Retrying
+            # forever would wedge the pipeline silently, so re-bootstrap and
+            # accept one undocumented range.
+            log(
+                f"compare base {compare_base[:7]} no longer exists in {APP_REPO} (404) — "
+                f"re-bootstrapping cursor to {main_sha[:7]}; this range will NOT be documented"
+            )
+            write_state(main_sha)
+            return 0
+        log(f"GitHub compare failed, skipping run without advancing cursor: {e}")
+        return 0
+    except (urllib.error.URLError, ValueError, http.client.HTTPException, KeyError, TypeError) as e:
         log(f"GitHub compare failed, skipping run without advancing cursor: {e}")
         return 0
 
     commits = compare.get("commits", [])
     if not commits:
         log("compare returned zero commits, advancing cursor")
-        advance_cursor(main_sha)
+        write_state(main_sha, keep_pr_base)
         return 0
 
     if len(commits) > MAX_COMMITS:
@@ -581,16 +567,17 @@ def main() -> int:
         features_md = ""
 
     # The checkout has to exist before triage so the model can be told which
-    # pages and nav groups actually exist right now.
+    # pages and nav groups actually exist right now. Reading docs.json belongs in
+    # the same guard: a malformed nav file on the base branch is a ValueError,
+    # and outside a handler it is an uncaught traceback every 30 minutes.
+    nav_path = os.path.join(WORKDIR, "docs.json")
     try:
         ensure_docs_checkout()
-    except (RuntimeError, OSError) as e:
+        nav_config = load_nav(nav_path)
+        slugs = existing_slugs()
+    except (RuntimeError, OSError, ValueError) as e:
         log(f"docs checkout failed, NOT advancing cursor (will retry next run): {e}")
         return 1
-
-    nav_path = os.path.join(WORKDIR, "docs.json")
-    nav_config = load_nav(nav_path)
-    slugs = existing_slugs()
 
     commit_lines = "\n".join(
         f"- {c['sha'][:7]} {c['commit']['message'].splitlines()[0]}" for c in commits
@@ -607,15 +594,35 @@ def main() -> int:
 
     try:
         triage = call_nan(TRIAGE_SYSTEM, triage_user)
-    except (urllib.error.URLError, TimeoutError, OSError) as e:
+    except (urllib.error.URLError, TimeoutError, OSError, http.client.HTTPException) as e:
         log(f"NAN unreachable during triage, skipping run without advancing cursor: {e}")
+        return 0
+
+    # An unusable response is NOT "no changes". A model that returned garbage has
+    # told us nothing about the release, and advancing on it burns the range with
+    # only a VPS log line to show for it. Retry instead — but bounded, so a
+    # persistently confused model cannot wedge the cursor forever.
+    if "no_changes" not in triage:
+        failures = int(state.get("triage_failures", 0)) + 1
+        if failures < MAX_TRIAGE_FAILURES:
+            log(
+                f"triage response unusable ({failures}/{MAX_TRIAGE_FAILURES}), "
+                f"NOT advancing cursor — will retry this range next run"
+            )
+            write_state(cursor, keep_pr_base, failures)
+            return 0
+        log(
+            f"triage response unusable {failures} times in a row — giving up on range "
+            f"{compare_base[:7]}...{main_sha[:7]} and advancing cursor. This range will NOT be documented."
+        )
+        write_state(main_sha, keep_pr_base)
         return 0
 
     changelog_mdx = (triage.get("changelog_mdx") or "").strip()
     raw_targets = triage.get("targets") or []
     if triage.get("no_changes") or (not changelog_mdx and not raw_targets):
         log(f"NAN found nothing doc-worthy in {len(commits)} commit(s), advancing cursor without a PR")
-        advance_cursor(main_sha)
+        write_state(main_sha, keep_pr_base)
         return 0
 
     # Validate targets before spending a call on any of them.
@@ -673,11 +680,11 @@ def main() -> int:
                     nav_dirty = True
             else:
                 report = edit_existing_page(slug, t, diff_meta["text"])
-        except (urllib.error.URLError, TimeoutError) as e:
+        except (urllib.error.URLError, TimeoutError, http.client.HTTPException) as e:
             # Transport failure on one page: keep the rest of the run, say so.
             log(f"NAN unreachable while editing {slug}: {e}")
             report = {"slug": slug, "outcome": "failed", "detail": f"NAN inalcanzable: {e}"}
-        except (PageParseError, OSError, RuntimeError, KeyError, TypeError) as e:
+        except (PageParseError, OSError, RuntimeError, ValueError, KeyError, TypeError) as e:
             log(f"page edit failed for {slug}: {e}")
             report = {"slug": slug, "outcome": "failed", "detail": str(e)}
 
@@ -691,7 +698,7 @@ def main() -> int:
 
     if not changelog_mdx and not changed_files:
         log("nothing to write after the edit pass, advancing cursor without a PR")
-        advance_cursor(main_sha)
+        write_state(main_sha, keep_pr_base)
         return 0
 
     try:
@@ -699,28 +706,44 @@ def main() -> int:
             save_nav(nav_path, nav_config)
             changed_files.append("docs.json")
 
+        # Titles come from the page on disk, not from the model's target payload:
+        # for a created page that file already holds the sanitised frontmatter we
+        # wrote, so the link text can't smuggle anything the frontmatter rejected.
         page_links = [
-            (r.get("title") or page_title(r["slug"]), f"features/{r['slug']}")
+            (page_title(r["slug"]), f"features/{r['slug']}")
             for r in reports
             if r["outcome"] in ("edited", "created")
         ]
         if not changelog_mdx:
             # Pages moved but the model gave no summary: still record the change,
             # a silent doc edit is worse than a terse changelog line.
-            changelog_mdx = "Actualizamos la documentación de las funcionalidades que cambiaron en esta versión."
+            changelog_mdx = FALLBACK_SUMMARY
+        changelog_mdx, changelog_problems = vet_changelog_summary(changelog_mdx)
+        if changelog_problems:
+            detail = "; ".join(changelog_problems)
+            log(f"changelog summary rejected, using the fallback text: {detail}")
+            caps.append(f"Resumen del changelog rechazado por el validador ({detail}); se usó el texto genérico.")
         append_changelog_entry(
-            changelog_mdx, datetime.now(timezone.utc).strftime("%Y-%m-%d"), page_links
+            os.path.join(WORKDIR, "changelog.mdx"),
+            changelog_mdx,
+            datetime.now(timezone.utc).strftime("%Y-%m-%d"),
+            page_links,
         )
         changed_files.append("changelog.mdx")
 
-        body = build_pr_body(main_sha, cursor, len(commits), diff_meta, reports, deferred, caps)
+        body = build_pr_body(
+            APP_REPO, NAN_MODEL, main_sha, compare_base, len(commits), diff_meta, reports, deferred, caps
+        )
         commit_and_push(sorted(set(changed_files)), main_sha)
         open_or_update_pr(body)
-    except (RuntimeError, OSError, urllib.error.URLError, KeyError, TypeError) as e:
+    except (RuntimeError, OSError, urllib.error.URLError, http.client.HTTPException,
+            ValueError, KeyError, TypeError) as e:
         log(f"docs repo operation failed, NOT advancing cursor (will retry next run): {e}")
         return 1
 
-    advance_cursor(main_sha)
+    # The PR now covers compare_base...main_sha, so that base is what a follow-up
+    # run must re-draft from until a human merges or closes it.
+    write_state(main_sha, compare_base)
     edited = sum(1 for r in reports if r["outcome"] in ("edited", "created"))
     log(
         f"done — {len(commits)} commit(s) up to {main_sha[:7]}: "
