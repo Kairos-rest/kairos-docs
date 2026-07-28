@@ -16,7 +16,7 @@
 
 - Product name is "Kairos" — never "the app" or "the platform" in body copy.
 - Say "local" (not "sucursal" or "tienda") for a restaurant venue; "organización" for a customer account; "agente" for the automated daily/weekly checks (cost, waste, reputation, revenue, budget, stockout, vendor, reconciliation, competitors).
-- Say "alerta" (not "notificación") for something an agent flagged; reserve "notificación" for the delivery channel (email/Slack/Telegram).
+- Say "alerta" (not "notificación") for something an agent flagged; reserve "notificación" for the delivery channel (email, push, WhatsApp, Slack).
 - Access is invitation-only — never write copy implying self-serve sign-up exists.
 
 ## Style preferences
@@ -26,6 +26,7 @@
 - Use sentence case for headings.
 - Bold for UI elements: hacé clic en **Configuración**.
 - Every page body starts with an `<!-- diataxis: tutorial|how-to|reference|explanation -->` comment recording its Diátaxis category — keep it when editing a page, set it on new ones.
+- **Icons come from Lucide** (`docs.json` sets `icons.library: "lucide"`); every nav group, page `icon:`, and anchor must use a Lucide name. Mintlify defaults to Font Awesome and silently renders nothing for a name it doesn't know, so a Font Awesome-only name leaves that sidebar row iconless instead of failing the build — check the name against [lucide.dev/icons](https://lucide.dev/icons/) before using it. Every page needs an `icon:`, including the root ones.
 - New/updated pages get `tag: "NEW"` in frontmatter; drop the tag once the update is a few weeks old and no longer novel.
 
 ## Content boundaries

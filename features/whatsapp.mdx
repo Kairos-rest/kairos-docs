@@ -1,0 +1,129 @@
+---
+title: "WhatsApp: alertas y facturas por chat"
+sidebarTitle: "WhatsApp"
+description: "Verificá tu número, recibí las alertas urgentes en el celular y mandá facturas a Kairos como documento de WhatsApp."
+icon: "message-square-text"
+tag: "NEW"
+---
+
+{/* diataxis: how-to */}
+
+WhatsApp te sirve para dos cosas en Kairos: recibir las alertas más urgentes en el celular y mandar facturas de compra sin abrir el dashboard. Las dos arrancan con el mismo paso — verificar tu número.
+
+## Verificá tu número
+
+La verificación la iniciás vos desde Kairos y la confirmás desde tu teléfono. Kairos nunca te manda un código sin que lo pidas.
+
+<Steps>
+  <Step title="Abrí la configuración de WhatsApp">
+    Entrá a **Configuración → Notificaciones** y buscá la sección **WhatsApp**. Hacé clic en **Conectar WhatsApp**.
+  </Step>
+  <Step title="Mandá el código desde tu teléfono">
+    Kairos te muestra un mensaje con un código de 6 caracteres, del estilo `Kairos K7QMXZ`. Tocá **Verificar por WhatsApp** para abrir el chat con el mensaje ya escrito, o copialo y mandalo a mano. Tiene que salir del mismo teléfono que querés verificar.
+  </Step>
+  <Step title="Esperá la confirmación">
+    La pantalla queda en **Esperando tu mensaje…** y pasa sola a **WhatsApp conectado** cuando llega tu mensaje: no hace falta refrescar. Vas a ver tu número parcialmente oculto como confirmación.
+  </Step>
+  <Step title="Guardá el número de Kairos en tus contactos">
+    Guardalo como "Kairos". Así reconocés nuestras alertas y no te llegan de un número desconocido.
+  </Step>
+</Steps>
+
+<Warning>
+  El código vence a los 10 minutos y se usa una sola vez. Si venció, pedí uno nuevo desde el mismo botón — podés pedir hasta 5 códigos por hora.
+</Warning>
+
+Cada persona verifica su propio número. Un mismo número no puede quedar verificado por dos miembros: si lo intentás, Kairos deja de reconocerlo y te avisa que coincide con más de un miembro.
+
+### Cambiar o desconectar el número
+
+- **Cambiar número** te devuelve al paso del código: el número nuevo hay que verificarlo igual que el primero.
+- **Desconectar** hace que Kairos deje de mandar mensajes a ese número y lo olvide. Para volver a usarlo tenés que verificarlo de nuevo.
+- Desde el chat también podés cortar: escribí `STOP` (o `PARAR`, `BAJA`, `CANCELAR`) y se apagan las alertas por WhatsApp en todas las organizaciones donde ese número esté verificado.
+
+## Recibí alertas por WhatsApp
+
+Una vez verificado el número, activá **Alertas por WhatsApp** en la misma sección de **Configuración → Notificaciones**. Elegís los tipos de alerta igual que en las notificaciones push (costos, desperdicio, reputación, stock, presupuesto, etc.) y podés ajustarlos por local.
+
+<Tip>
+  Por WhatsApp solo salen las alertas de severidad alta o crítica, y cada mensaje trae un botón para abrir la alerta en el dashboard. El resto queda disponible en Kairos, para que el canal no se llene de avisos poco urgentes.
+</Tip>
+
+Cómo se combina con email, push y Slack: [Notificaciones](/features/notifications).
+
+## Mandá facturas por WhatsApp
+
+Podés reenviar al chat de Kairos las facturas de compra que te llegan por WhatsApp y dejarlas cargadas sin entrar al dashboard.
+
+### Qué necesitás
+
+- Plan **Scale** o **Enterprise**.
+- Rol **Administrador**, o **Responsable** con el permiso **Gestionar facturas** en al menos un local.
+- Tu número verificado, con el paso anterior.
+
+No hay ningún interruptor extra: si cumplís las tres condiciones, ya podés mandar facturas al chat.
+
+### Qué archivos mandar
+
+<Steps>
+  <Step title="Adjuntá el archivo como documento">
+    En el chat de Kairos usá el clip y elegí **Documento**. Mandado como foto no se procesa.
+  </Step>
+  <Step title="Usá PDF cuando puedas">
+    Aceptamos PDF, JPG y PNG, siempre adjuntados como documento, hasta 25 MB por archivo. El PDF es el formato que mejor lee Kairos.
+  </Step>
+  <Step title="Una factura de varias páginas va en un solo PDF">
+    Si la escaneaste en varias hojas, combinalas antes de mandarla: así queda como una factura y no como varias.
+  </Step>
+  <Step title="Mandá todas las que tengas, una atrás de la otra">
+    Kairos agrupa los envíos seguidos y te contesta con un solo resumen cuando dejás de mandar.
+  </Step>
+</Steps>
+
+<Warning>
+  Si mandás una foto desde la cámara o la galería, Kairos te responde **"Todavía no podemos procesar fotos"** y te pide reenviarla como documento PDF. La imagen no queda cargada: hay que volver a mandarla.
+</Warning>
+
+### Elegí el local
+
+Si tu organización tiene más de un local, Kairos te contesta con una lista **Elegir local** antes de procesar. Muestra hasta 10 locales por página, con **Siguiente →** y **← Anterior** para recorrer el resto.
+
+La elección queda fija para el resto de la conversación, hasta 24 horas. Para pasar a otro local, mandá primero la factura y después pedí el cambio. Si el selector venció o quedó viejo, Kairos te lo dice y alcanza con volver a mandar la factura para recibir uno nuevo.
+
+### Qué te contesta Kairos
+
+| Mensaje | Qué significa |
+|---|---|
+| El procesamiento de tus facturas ha comenzado | Kairos recibió los archivos y arrancó la lectura. |
+| Actualización de facturas | Resumen del envío: cuántas facturas recibimos, cuántas no pudimos procesar y cuántas ya teníamos. |
+| Procesamiento de facturas completado | Cuántas facturas se detectaron y cuántas quedaron listas para revisar, con el botón **Revisar facturas**. |
+| Esta factura ya fue recibida | Detectamos un duplicado, así que no genera una revisión nueva. |
+
+### Después de mandarla
+
+Las facturas que entran por WhatsApp siguen el mismo circuito que las del escaneo o el correo: quedan **a revisar** en el dashboard y no tocan tu stock ni tus costos hasta que alguien las ejecuta. Para encontrarlas rápido, en **Facturas** usá el filtro **Importadas por WhatsApp**.
+
+El circuito completo de revisión, aprobación y ejecución está en [Facturas](/features/invoices).
+
+## Si algo no funciona
+
+<AccordionGroup>
+  <Accordion title="Kairos responde que no pudo vincular esta cuenta de WhatsApp">
+    El número desde el que escribís no está verificado en Kairos. Verificalo en **Configuración → Notificaciones → WhatsApp**, y revisá que sea el mismo teléfono con el que mandás las facturas.
+  </Accordion>
+  <Accordion title="Kairos responde que la cuenta coincide con más de un miembro">
+    Ese número quedó verificado por dos personas. Entrá con la cuenta que no lo va a usar y tocá **Desconectar**; después volvé a mandar la factura.
+  </Accordion>
+  <Accordion title="Kairos responde que el envío de facturas es de los planes Scale y Enterprise">
+    Tu organización está en un plan que no incluye este canal. Escribinos a [soporte@kairos.rest](mailto:soporte@kairos.rest) para cambiarlo.
+  </Accordion>
+  <Accordion title="Kairos responde que la recepción de facturas no está disponible para esta cuenta">
+    Te falta permiso, no plan. Necesitás rol **Administrador**, o **Responsable** con **Gestionar facturas** en algún local — pedíselo a un administrador desde **Configuración → Equipo**.
+  </Accordion>
+  <Accordion title="El código de verificación venció antes de que lo mandes">
+    Los códigos duran 10 minutos. Pedí uno nuevo con **Conectar WhatsApp**; si ya pediste varios en la última hora, esperá unos minutos y refrescá la página, porque puede ser que ya estés verificado.
+  </Accordion>
+  <Accordion title="Kairos dejó de contestarte en el chat">
+    Si un número sin vincular insiste con mensajes, Kairos deja de responderle por un tiempo para evitar abusos. Verificá el número desde el dashboard, y si sigue sin contestar escribinos a [soporte@kairos.rest](mailto:soporte@kairos.rest).
+  </Accordion>
+</AccordionGroup>
