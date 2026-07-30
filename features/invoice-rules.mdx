@@ -17,7 +17,7 @@ Una regla no se aplica mientras subís una factura ni durante la lectura OCR. En
 Antes de confirmar o ejecutar la factura, Kairos hace una verificación previa con sus líneas actuales. Ahí evalúa las reglas, prepara el resultado final y comprueba que cada línea pueda continuar. Una línea que queda sin resolver, ambigua o inválida necesita una corrección antes de ejecutar la factura.
 
 <Note>
-  La **Vista previa** prueba una regla contra facturas recientes del mismo proveedor y local. No activa la regla ni modifica esas facturas.
+  La **Vista previa** prueba únicamente la regla que estás completando contra facturas recientes del mismo proveedor y local. No activa la regla, no modifica facturas ni compara la propuesta con otras reglas activas.
 </Note>
 
 ## Qué contiene una regla
@@ -29,42 +29,41 @@ Antes de confirmar o ejecutar la factura, Kairos hace una verificación previa c
   <Card title="Descripción y coincidencia">
     Definí qué texto busca Kairos y el **Tipo de coincidencia**: **Exactamente**, **Contiene** o **Comienza con**.
   </Card>
-  <Card title="Línea observada">
-    Indicá el **Tipo de línea observada** y la **Unidad de compra/origen** que aparecen en la factura. Puede ser una línea de ingrediente o de gasto.
+  <Card title="Línea y unidad de origen">
+    Kairos usa la descripción impresa y la **Unidad de compra/origen** de la factura para encontrar líneas compatibles.
   </Card>
   <Card title="Resultado y conversión">
     Elegí el **Tipo de resultado**, el destino, la **Unidad final de stock** y el factor de conversión. Cada unidad impresa se convierte según ese factor.
   </Card>
 </CardGroup>
 
-Para un **Ingrediente de inventario**, elegí el **Ingrediente destino**. Para un **Gasto sin inventario**, usá la **Categoría de Fudo (opcional)** que corresponda.
+Para un **Ingrediente de inventario**, elegí el **Ingrediente destino**. Para un **Gasto sin inventario**, elegí ese tipo de resultado; la pantalla no pide una categoría adicional.
 
 El factor debe producir una cantidad final positiva y válida. Si la conversión no puede producir ese resultado, la línea queda **Inválida** y no continúa automáticamente.
 
 ## Cómo se decide entre reglas
 
-Kairos busca reglas del mismo proveedor que coincidan con la descripción, la unidad de compra/origen y el tipo de línea observada.
+Kairos busca reglas activas del mismo proveedor que coincidan con la descripción y la **Unidad de compra/origen** de la línea.
 
 Si coinciden reglas de los dos alcances, gana **Este local** sobre **Toda la organización**. La regla de organización solo puede resolver un ingrediente si tiene una equivalencia explícita para ese local.
 
-Si coinciden dos o más reglas en el alcance ganador, Kairos no elige una al azar. La línea queda **Ambigua**: es una protección para que una regla inesperada no cambie tu stock o tus gastos.
+Si coinciden dos o más reglas activas en el alcance ganador, Kairos no elige una al azar. Durante la verificación previa, la línea queda **Ambigua** y la ejecución se bloquea.
 
 <Tip>
-  Si una línea queda ambigua, revisá las reglas activas del proveedor. Ajustá la descripción o el **Tipo de coincidencia**, o pausá la regla que sobra antes de volver a previsualizar.
+  Si la verificación previa marca una línea como ambigua, revisá las reglas activas del proveedor. Ajustá la descripción o el **Tipo de coincidencia**, o pausá la regla que sobra.
 </Tip>
 
 ## Cómo leer la vista previa
 
-En **Facturas → Reglas**, hacé clic en **Vista previa** después de completar una regla. Kairos muestra cuántas facturas y líneas recientes revisó, junto con estos resultados:
+En **Facturas → Reglas**, hacé clic en **Vista previa** después de completar una regla. Solo los administradores pueden completar la regla y ejecutar esta vista previa. Kairos muestra cuántas facturas y líneas recientes revisó, junto con estos resultados:
 
 | Resultado | Qué significa | Qué podés hacer |
 |---|---|---|
 | **Resueltas** | La línea encontró una única regla válida y tiene un destino y una conversión utilizables. | Revisá el resultado y activá la regla si coincide con tu catálogo. |
 | **Sin resolver** | No hubo una regla que coincidiera, o falta la equivalencia del local para una regla de organización. | Revisá el proveedor, la descripción, la unidad de compra/origen y el alcance. Para un ingrediente de organización, agregá la equivalencia de cada local. |
-| **Ambiguas** | Más de una regla coincidió en el alcance ganador. | Editá o pausá una de las reglas y volvé a previsualizar. |
-| **Inválidas** | Falta un dato necesario o la regla no puede producir una cantidad final válida. | Revisá el tipo de línea, el destino, la unidad, la cantidad y el factor de conversión. |
+| **Inválidas** | Falta un dato necesario o la regla no puede producir una cantidad final válida. | Revisá el tipo de resultado, el destino, la unidad, la cantidad y el factor de conversión. |
 
-Una línea **Resuelta** no significa que la factura ya se ejecutó. La decisión se materializa en la verificación previa a confirmar o ejecutar, y la factura sigue su circuito normal de revisión y aprobación.
+La **Vista previa** no compara la regla propuesta con otras reglas activas. Por eso, una línea **Resuelta** no garantiza que la factura pueda ejecutarse. En la verificación previa a confirmar o ejecutar, Kairos reevalúa la factura con las reglas activas; si hay un conflicto entre reglas del mismo alcance ganador, deja la línea **Ambigua** y bloquea la ejecución.
 
 La vista previa muestra el resumen completo de las líneas revisadas. El detalle puede estar limitado cuando hay muchas líneas; si el resumen y el detalle no tienen la misma cantidad, tomá el resumen como total y corregí la regla antes de activarla.
 
@@ -72,8 +71,9 @@ La vista previa muestra el resumen completo de las líneas revisadas. El detalle
 
 1. Confirmá que el **Proveedor** sea el que figura en la factura.
 2. Compará la descripción y la **Unidad de compra/origen** con la línea impresa.
-3. Revisá el **Tipo de línea observada** y el **Tipo de resultado**.
+3. Revisá el **Tipo de resultado**.
 4. Verificá el destino, la **Unidad final de stock** y el factor.
-5. Usá **Vista previa** otra vez. Si sigue **Sin resolver**, **Ambigua** o **Inválida**, corregí la regla o resolvé la línea manualmente antes de ejecutar.
+5. Usá **Vista previa** otra vez. Si devuelve **Sin resolver** o **Inválida**, corregí la regla o resolvé la línea manualmente antes de ejecutar.
+6. Si la verificación previa marca **Ambigua**, editá o pausá la regla que sobra antes de ejecutar.
 
-Los responsables pueden revisar reglas y vistas previas. Se necesita un administrador para crear, editar, pausar o activar reglas.
+Los responsables pueden revisar las reglas y las sugerencias. No pueden completar ni ejecutar una vista previa. Solo los administradores pueden crear, editar, pausar o activar reglas.
