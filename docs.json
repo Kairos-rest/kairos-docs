@@ -46,6 +46,7 @@
         "icon": "receipt",
         "pages": [
           "features/invoices",
+          "features/invoice-rules",
           "features/vendor",
           "features/data-health"
         ]
