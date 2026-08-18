@@ -30,7 +30,7 @@ Antes de confirmar o ejecutar la factura, Kairos hace una verificación previa c
     Definí qué texto busca Kairos y el **Tipo de coincidencia**: **Exactamente**, **Contiene** o **Comienza con**.
   </Card>
   <Card title="Línea y unidad de origen">
-    Kairos usa la descripción impresa y la **Unidad de compra/origen** de la factura para encontrar líneas compatibles.
+    Kairos usa la descripción impresa y la **Unidad de compra/origen** para encontrar líneas compatibles. El campo te sugiere unidades vistas en facturas recientes, pero también podés escribir otra.
   </Card>
   <Card title="Resultado y conversión">
     Elegí el **Tipo de resultado**, el destino, la **Unidad final de stock** y el factor de conversión. Cada unidad impresa se convierte según ese factor.
@@ -41,6 +41,10 @@ Para un **Ingrediente de inventario**, elegí el **Ingrediente destino**. Para u
 
 El factor debe producir una cantidad final positiva y válida. Si la conversión no puede producir ese resultado, la línea queda **Inválida** y no continúa automáticamente.
 
+<Note>
+  Si una línea no trae una unidad de origen, Kairos la trata como **unidad**. Usá ese valor al crear una regla para esas líneas.
+</Note>
+
 ## Cómo se decide entre reglas
 
 Kairos busca reglas activas del mismo proveedor que coincidan con la descripción y la **Unidad de compra/origen** de la línea.
@@ -48,6 +52,8 @@ Kairos busca reglas activas del mismo proveedor que coincidan con la descripció
 Si coinciden reglas de los dos alcances, gana **Este local** sobre **Toda la organización**. La regla de organización solo puede resolver un ingrediente si tiene una equivalencia explícita para ese local.
 
 Si coinciden dos o más reglas activas en el alcance ganador, Kairos no elige una al azar. Durante la verificación previa, la línea queda **Ambigua** y la ejecución se bloquea.
+
+Una única equivalencia válida puede resolver la línea automáticamente. Kairos conserva cualquier equivalencia explícita que ya configuraste y no la reemplaza con una sugerencia nueva.
 
 <Tip>
   Si la verificación previa marca una línea como ambigua, revisá las reglas activas del proveedor. Ajustá la descripción o el **Tipo de coincidencia**, o pausá la regla que sobra.
