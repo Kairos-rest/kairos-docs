@@ -1,4 +1,4 @@
-"""Prompts for the docs sync pipeline's two NAN passes.
+"""Prompts for the docs sync pipeline's two Labestia passes.
 
 Kept apart from the control flow on purpose: these are the part that gets tuned
 when the model drafts something wrong, and a prompt edit should be reviewable

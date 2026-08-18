@@ -25,11 +25,9 @@ TOOLING_CHECKOUT="$PIPELINE_HOME/tooling-checkout"
 DOCS_REMOTE="${DOCS_SYNC_TOOLING_REMOTE:-https://github.com/Kairos-rest/kairos-docs.git}"
 DOCS_REF="${DOCS_SYNC_BASE_BRANCH:-main}"
 
-# NAN_API_URL / NAN_API_KEY come from the shared credential file every other
-# Kairos script on this box sources; the two GitHub PATs are pipeline-specific.
+# Labestia is reached through the VPS's private loopback proxy and needs no API
+# secret here. Only the two repository-scoped GitHub PATs are pipeline-specific.
 set -a
-# shellcheck disable=SC1090
-[ -f "$HOME/.hermes/.env.pulgita" ] && source "$HOME/.hermes/.env.pulgita"
 # shellcheck disable=SC1091
 source "$PIPELINE_HOME/.env-kairos-docs"
 set +a
