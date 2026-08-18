@@ -15,11 +15,11 @@ cron on `sophios-vps`. Never pushes to `main`, never auto-merges.
    `app/`, `components/`, `lib/schemas/`, `docs/FEATURES.md`) and ranked with UI
    copy first. Tests, tooling, generated clients, `prisma/`, internal handbooks
    and lockfiles are dropped. Budget: 6k chars per file, 120k total.
-3. **Triage pass** — one NAN call gets the commit subjects, the budgeted diff,
-   the list of existing page slugs and the nav group names. It returns the
-   changelog entry plus the pages that need editing or creating, each with the
-   diff paths that justify it.
-4. **Per-page pass** — one NAN call per target page, given only that page's
+3. **Triage pass** — one call to Labestia's `qwen3.6:35b-a3b` gets the commit
+   subjects, the budgeted diff, the list of existing page slugs and the nav
+   group names. It returns the changelog entry plus the pages that need editing
+   or creating, each with the diff paths that justify it.
+4. **Per-page pass** — one Labestia call per target page, given only that page's
    current MDX and the slice of the diff behind it. It returns section-level
    actions, not a page. Capped at 4 pages and 20 minutes per run; anything over
    is deferred and named in the PR body.
@@ -106,7 +106,8 @@ review is still the last gate on every PR.
 
 | File | Purpose |
 |---|---|
-| `docs-sync.py` | the job: cursor, NAN passes, commit, PR |
+| `docs-sync.py` | the job: cursor, Labestia passes, commit, PR |
+| `docs_llm.py` | private Labestia client, model preflight and JSON parsing |
 | `docs_diff.py` | release-diff selection, ranking and budgeting |
 | `docs_mdx.py` | MDX parse/render, section surgery, safety gates |
 | `docs_nav.py` | `docs.json` navigation edits |
@@ -158,16 +159,20 @@ Two fine-grained GitHub PATs in `~/kairos-docs-pipeline/.env-kairos-docs`
 - `GH_DOCS_WRITE_TOKEN` — `Kairos-rest/kairos-docs`, `Contents: Read and write`
   + `Pull requests: Read and write`.
 
-`NAN_API_URL` / `NAN_API_KEY` come from `~/.hermes/.env.pulgita`, the shared NAN
-credential every Kairos script on that box already sources.
+The model requires no pipeline secret. `sophios-vps` exposes Labestia through
+`http://127.0.0.1:8090/v1`; nginx injects the upstream Cloudflare credentials.
+The default model is the exact advertised tag `qwen3.6:35b-a3b`. The job checks
+`/models` before spending a triage call and retains the cursor if the route or
+model is unavailable.
 
 ## Failure modes, by design
 
 | Situation | Behaviour |
 |---|---|
 | GitHub unreachable | skip run, cursor NOT advanced, retried next tick |
-| NAN unreachable during triage | skip run, cursor NOT advanced |
-| NAN unreachable during one page | that page reported as failed, rest of run continues |
+| Labestia route/model unavailable | skip run, cursor NOT advanced |
+| Labestia unreachable during triage | skip run, cursor NOT advanced |
+| Labestia unreachable during one page | that page reported as failed, rest of run continues |
 | Triage response unusable (non-JSON, missing keys) | cursor NOT advanced, range retried; after `DOCS_SYNC_MAX_TRIAGE_FAILURES` consecutive failures the range is abandoned with a loud log |
 | Compare base no longer exists in the app repo (404) | cursor re-bootstrapped to current `main` with a loud log — one undocumented range beats a permanent wedge |
 | A section body fails validation | that action dropped, reported in the PR body |
@@ -191,7 +196,9 @@ the full release says so.
 | `DOCS_SYNC_MAX_COMMITS` | 60 | newest commits kept from a long range |
 | `DOCS_SYNC_MAX_PAGES` | 4 | page edits attempted per run |
 | `DOCS_SYNC_MAX_TRIAGE_FAILURES` | 5 | unusable triage responses before a range is abandoned |
-| `DOCS_SYNC_NAN_TIMEOUT` | 180 | seconds per NAN call |
+| `DOCS_SYNC_LLM_API_URL` | `http://127.0.0.1:8090/v1` | private OpenAI-compatible Labestia route |
+| `DOCS_SYNC_LLM_MODEL` | `qwen3.6:35b-a3b` | exact model tag advertised by Labestia |
+| `DOCS_SYNC_LLM_TIMEOUT` | 180 | seconds per model call |
 | `DOCS_SYNC_DEADLINE` | 1200 | whole-run wall clock ceiling, seconds |
 | `DOCS_SYNC_BRANCH` | `docs-sync/auto` | branch the PR comes from |
 | `DOCS_SYNC_HOME` | `~/kairos-docs-pipeline` | state + checkouts location |
@@ -206,3 +213,6 @@ the full release says so.
 - **KAI-403** — this version. Reads the release diff, edits feature pages by
   section, drafts new pages with a nav entry, and moved the code into this repo
   so it is reviewable instead of a loose file on a VPS.
+- **2026-08-18 provider repair** — replaced the deleted shared NAN credential
+  dependency with the VPS's private, credential-free Labestia loopback route.
+  The request pins non-thinking JSON mode and the exact advertised model tag.

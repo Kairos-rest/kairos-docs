@@ -2,7 +2,7 @@
 """Kairos docs sync — reviews the release code, then updates the docs.
 
 Polls `Kairos-rest/app`'s production branch, and for every new commit range it
-does two passes over NAN (qwen3.6):
+does two passes over the private Labestia model route:
 
   1. Triage — given the commit subjects *and the filtered release diff*, decide
      whether anything is customer-visible, draft the changelog entry, and name
@@ -28,7 +28,7 @@ discarded that field and hard-coded `git add changelog.mdx` — so feature pages
 never moved after the initial content drop.
 
 Safety properties kept from KAI-246:
-  * Fail-soft — if GitHub or NAN is unreachable the run is skipped and the
+  * Fail-soft — if GitHub or Labestia is unreachable the run is skipped and the
     cursor is NOT advanced, so the range is retried on the next trigger.
   * Single-flight via flock; an overlapping run is a no-op, not a queue.
   * One branch (`docs-sync/auto`), cut fresh from `main`, force-pushed —
@@ -77,6 +77,12 @@ from docs_changelog import (  # noqa: E402
     vet_changelog_summary,
 )
 from docs_diff import scope_diff_to_paths, select_release_diff  # noqa: E402
+from docs_llm import (  # noqa: E402
+    DEFAULT_API_URL,
+    DEFAULT_MODEL,
+    chat_json,
+    require_model,
+)
 from docs_mdx import (  # noqa: E402
     PageParseError,
     apply_actions,
@@ -105,20 +111,19 @@ MAX_PAGES_PER_RUN = int(os.environ.get("DOCS_SYNC_MAX_PAGES", "4"))
 # Consecutive unusable triage responses tolerated before the range is abandoned.
 # Without a ceiling, a model that cannot produce JSON wedges the cursor forever.
 MAX_TRIAGE_FAILURES = int(os.environ.get("DOCS_SYNC_MAX_TRIAGE_FAILURES", "5"))
-# qwen3.6 thinking-mode latency is high-variance and this runs on a 30-minute
+# Labestia's 35b model has high-variance latency and this runs on a 30-minute
 # cron, not a user-facing request.
-NAN_TIMEOUT = float(os.environ.get("DOCS_SYNC_NAN_TIMEOUT", "180"))
+LLM_TIMEOUT = float(os.environ.get("DOCS_SYNC_LLM_TIMEOUT", "180"))
 # Whole-run ceiling. Worst case is 1 triage + MAX_PAGES_PER_RUN edit calls; the
 # deadline stops us starting a call that would overlap the next cron tick.
 DEADLINE_SECONDS = float(os.environ.get("DOCS_SYNC_DEADLINE", "1200"))
-# A bare urllib UA trips Cloudflare bot-fight-mode (error 1010) on NAN's endpoint.
+# Keep a named caller in the private proxy's request/accounting logs.
 USER_AGENT = "kairos-docs-pipeline/2.0"
 
 GH_READ_TOKEN = os.environ["GH_APP_READ_TOKEN"]  # read-only PAT, scoped to Kairos-rest/app
 GH_DOCS_TOKEN = os.environ["GH_DOCS_WRITE_TOKEN"]  # fine-grained PAT, scoped to Kairos-rest/kairos-docs only
-NAN_API_URL = os.environ.get("NAN_API_URL", "https://api.nan.builders/v1")
-NAN_API_KEY = os.environ["NAN_API_KEY"]
-NAN_MODEL = os.environ.get("NAN_MODEL", "qwen3.6")
+LLM_API_URL = os.environ.get("DOCS_SYNC_LLM_API_URL", DEFAULT_API_URL)
+LLM_MODEL = os.environ.get("DOCS_SYNC_LLM_MODEL", DEFAULT_MODEL)
 
 SLUG_RE = re.compile(r"^[a-z][a-z0-9-]{2,39}$")
 VALID_DIATAXIS = ("tutorial", "how-to", "reference", "explanation")
@@ -178,15 +183,15 @@ def write_state(last_sha: str, pr_base: str | None = None, triage_failures: int 
     save_state(state)
 
 
-# ------------------------------------------------------------------------- NAN
+# -------------------------------------------------------------------- Labestia
 
 
-def call_nan(system: str, user: str) -> dict:
-    """One NAN chat completion, parsed as JSON.
+def call_model(system: str, user: str) -> dict:
+    """One Labestia chat completion, parsed as JSON.
 
     Returns `{}` when the model answers with something that is not the JSON
     object we asked for. That is a content failure, not a transport failure, so
-    it must not look like "NAN unreachable" to the caller — a `{}` here means
+    it must not look like "Labestia unreachable" to the caller — a `{}` here means
     "the model had nothing usable to say".
 
     Callers must NOT read `{}` as "no changes": a confused model and a model
@@ -199,47 +204,7 @@ def call_nan(system: str, user: str) -> dict:
     an `OSError`, so left uncaught they would escape every handler upstream and
     kill a run that had already written pages to the working clone.
     """
-    payload = {
-        "model": NAN_MODEL,
-        "messages": [
-            {"role": "system", "content": system},
-            {"role": "user", "content": user},
-        ],
-        "temperature": 0.2,
-    }
-    req = urllib.request.Request(
-        f"{NAN_API_URL}/chat/completions",
-        data=json.dumps(payload).encode(),
-        method="POST",
-    )
-    req.add_header("Authorization", f"Bearer {NAN_API_KEY}")
-    req.add_header("Content-Type", "application/json")
-    req.add_header("User-Agent", USER_AGENT)
-    try:
-        with urllib.request.urlopen(req, timeout=NAN_TIMEOUT) as resp:
-            raw = json.loads(resp.read().decode())
-    except (ValueError, http.client.HTTPException) as e:
-        log(f"NAN returned an unreadable response body: {e}")
-        return {}
-
-    try:
-        text = raw["choices"][0]["message"]["content"].strip()
-    except (KeyError, IndexError, TypeError):
-        log("NAN response had no message content")
-        return {}
-
-    if text.startswith("```"):
-        text = text.strip("`")
-    start, end = text.find("{"), text.rfind("}")
-    if start == -1 or end <= start:
-        log(f"NAN returned no JSON object. Raw: {text[:300]}")
-        return {}
-    try:
-        parsed = json.loads(text[start:end + 1])
-    except json.JSONDecodeError:
-        log(f"NAN returned malformed JSON. Raw: {text[start:start + 300]}")
-        return {}
-    return parsed if isinstance(parsed, dict) else {}
+    return chat_json(LLM_API_URL, LLM_MODEL, LLM_TIMEOUT, USER_AGENT, system, user, log)
 
 
 # ------------------------------------------------------------------------- git
@@ -329,7 +294,7 @@ def edit_existing_page(slug: str, target: dict, diff_text: str) -> dict:
         + "\n\nDiff del código relacionado:\n"
         + scoped
     )
-    result = call_nan(EDIT_SYSTEM, user)
+    result = call_model(EDIT_SYSTEM, user)
     actions = result.get("actions")
     if not isinstance(actions, list) or not actions:
         return {"slug": slug, "outcome": "skipped", "detail": "model proposed no usable actions"}
@@ -375,7 +340,7 @@ def create_new_page(slug: str, target: dict, diff_text: str, nav_config: dict) -
         f"Motivo: {target.get('reason', '(sin motivo)')}\n\n"
         f"Diff del código que la implementa:\n{scoped}"
     )
-    result = call_nan(NEW_PAGE_SYSTEM, user)
+    result = call_model(NEW_PAGE_SYSTEM, user)
     body = (result.get("body_mdx") or "").strip()
     if not body:
         return {"slug": slug, "outcome": "skipped", "detail": "model declined to draft the page"}
@@ -485,7 +450,8 @@ def main() -> int:
     try:
         head = gh_api(f"/repos/{APP_REPO}/commits/{BASE_BRANCH}", GH_READ_TOKEN)
         main_sha = head["sha"]
-    except (urllib.error.URLError, ValueError, http.client.HTTPException, KeyError, TypeError) as e:
+    except (urllib.error.URLError, TimeoutError, OSError, ValueError,
+            http.client.HTTPException, KeyError, TypeError) as e:
         log(f"GitHub unreachable, skipping run without advancing cursor: {e}")
         return 0
 
@@ -502,6 +468,16 @@ def main() -> int:
     # is mid-review, twice an hour, until they merge.
     if cursor == main_sha:
         log("no new commits since last run")
+        return 0
+
+    try:
+        require_model(LLM_API_URL, LLM_MODEL, LLM_TIMEOUT, USER_AGENT)
+    except (urllib.error.URLError, TimeoutError, OSError, ValueError,
+            http.client.HTTPException, KeyError, TypeError) as e:
+        log(
+            f"Labestia model {LLM_MODEL!r} unavailable at {LLM_API_URL}, "
+            f"skipping run without advancing cursor: {e}"
+        )
         return 0
 
     # There IS new work. While a drafted PR is still unreviewed, re-draft from
@@ -610,9 +586,9 @@ def main() -> int:
     )
 
     try:
-        triage = call_nan(TRIAGE_SYSTEM, triage_user)
+        triage = call_model(TRIAGE_SYSTEM, triage_user)
     except (urllib.error.URLError, TimeoutError, OSError, http.client.HTTPException) as e:
-        log(f"NAN unreachable during triage, skipping run without advancing cursor: {e}")
+        log(f"Labestia unreachable during triage, skipping run without advancing cursor: {e}")
         return 0
 
     # An unusable response is NOT "no changes". A model that returned garbage has
@@ -638,7 +614,7 @@ def main() -> int:
     changelog_mdx = (triage.get("changelog_mdx") or "").strip()
     raw_targets = triage.get("targets") or []
     if triage.get("no_changes") or (not changelog_mdx and not raw_targets):
-        log(f"NAN found nothing doc-worthy in {len(commits)} commit(s), advancing cursor without a PR")
+        log(f"Labestia found nothing doc-worthy in {len(commits)} commit(s), advancing cursor without a PR")
         write_state(main_sha, keep_pr_base)
         return 0
 
@@ -699,8 +675,8 @@ def main() -> int:
                 report = edit_existing_page(slug, t, diff_meta["text"])
         except (urllib.error.URLError, TimeoutError, http.client.HTTPException) as e:
             # Transport failure on one page: keep the rest of the run, say so.
-            log(f"NAN unreachable while editing {slug}: {e}")
-            report = {"slug": slug, "outcome": "failed", "detail": f"NAN inalcanzable: {e}"}
+            log(f"Labestia unreachable while editing {slug}: {e}")
+            report = {"slug": slug, "outcome": "failed", "detail": f"Labestia inalcanzable: {e}"}
         except (PageParseError, OSError, RuntimeError, ValueError, KeyError, TypeError) as e:
             log(f"page edit failed for {slug}: {e}")
             report = {"slug": slug, "outcome": "failed", "detail": str(e)}
@@ -751,7 +727,7 @@ def main() -> int:
         changed_files.append("changelog.mdx")
 
         body = build_pr_body(
-            APP_REPO, NAN_MODEL, main_sha, compare_base, len(commits), diff_meta, reports, deferred, caps
+            APP_REPO, LLM_MODEL, main_sha, compare_base, len(commits), diff_meta, reports, deferred, caps
         )
         commit_and_push(sorted(set(changed_files)), main_sha)
         open_or_update_pr(body)

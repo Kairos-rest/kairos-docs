@@ -3,8 +3,8 @@
 
 Deliberately stdlib-only (`python3 -m unittest`) so they run on the VPS with no
 install step. Nothing here touches the network — the modules under test were
-split out of `docs-sync.py` precisely so the diff selection, MDX surgery and nav
-edits could be tested without NAN or GitHub.
+split out of `docs-sync.py` precisely so the model client, diff selection, MDX
+surgery and nav edits can be tested without Labestia or GitHub.
 
 Run: python3 -m unittest discover -s tooling/docs-sync -p 'test_*.py'
 """
@@ -12,9 +12,11 @@ Run: python3 -m unittest discover -s tooling/docs-sync -p 'test_*.py'
 from __future__ import annotations
 
 import ast
+import json
 import os
 import tempfile
 import unittest
+from unittest.mock import patch
 
 from docs_changelog import (
     CHANGELOG_FALLBACK,
@@ -24,6 +26,13 @@ from docs_changelog import (
     vet_changelog_summary,
 )
 from docs_diff import is_customer_facing, scope_diff_to_paths, select_release_diff
+from docs_llm import (
+    DEFAULT_API_URL,
+    DEFAULT_MODEL,
+    build_chat_request,
+    chat_json,
+    model_is_available,
+)
 from docs_mdx import (
     PageParseError,
     apply_actions,
@@ -60,6 +69,61 @@ Toda factura recorre el mismo circuito.
   </Step>
 </Steps>
 """
+
+
+class _Response:
+    def __init__(self, body: dict):
+        self.body = json.dumps(body).encode()
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *_args):
+        return False
+
+    def read(self) -> bytes:
+        return self.body
+
+
+class TestLabestiaClient(unittest.TestCase):
+    def test_defaults_use_the_private_vps_route_and_exact_labestia_model(self):
+        self.assertEqual(DEFAULT_API_URL, "http://127.0.0.1:8090/v1")
+        self.assertEqual(DEFAULT_MODEL, "qwen3.6:35b-a3b")
+
+    def test_request_disables_thinking_and_requires_a_json_object(self):
+        request = build_chat_request(DEFAULT_API_URL, DEFAULT_MODEL, "system", "user", "test-agent")
+        payload = json.loads(request.data)
+
+        self.assertEqual(request.full_url, "http://127.0.0.1:8090/v1/chat/completions")
+        self.assertFalse(payload["think"])
+        self.assertEqual(payload["response_format"], {"type": "json_object"})
+        self.assertNotIn("Authorization", request.headers)
+
+    @patch("docs_llm.urllib.request.urlopen")
+    def test_chat_json_reads_the_openai_compatible_content_field(self, urlopen):
+        urlopen.return_value = _Response({
+            "choices": [{"message": {"content": "```json\n{\"ok\": true}\n```"}}]
+        })
+
+        self.assertEqual(
+            chat_json(DEFAULT_API_URL, DEFAULT_MODEL, 12, "test-agent", "system", "user", lambda _msg: None),
+            {"ok": True},
+        )
+        urlopen.assert_called_once()
+        self.assertEqual(urlopen.call_args.kwargs["timeout"], 12)
+
+    def test_model_probe_accepts_only_an_exact_advertised_model(self):
+        response = {"data": [{"id": "qwen3.6:35b-a3b"}, {"id": "qwen3.6:27b"}]}
+        self.assertTrue(model_is_available(response, "qwen3.6:35b-a3b"))
+        self.assertFalse(model_is_available(response, "qwen3.6"))
+
+    def test_pipeline_has_no_shared_hermes_or_nan_secret_dependency(self):
+        here = os.path.dirname(os.path.abspath(__file__))
+        for filename in ("bootstrap.sh", "docs-sync.py"):
+            with open(os.path.join(here, filename)) as f:
+                source = f.read()
+            self.assertNotIn(".hermes/.env.pulgita", source, filename)
+            self.assertNotIn("NAN_API_KEY", source, filename)
 
 
 class TestDiffSelection(unittest.TestCase):
@@ -536,7 +600,7 @@ class TestChangelogWriting(unittest.TestCase):
 class TestPrBody(unittest.TestCase):
     def _body(self, reports, deferred=(), caps=()) -> str:
         return build_pr_body(
-            "Kairos-rest/app", "qwen3.6", "b" * 40, "a" * 40, 3,
+            "Kairos-rest/app", "qwen3.6:35b-a3b", "b" * 40, "a" * 40, 3,
             {"included_paths": ["messages/es.json"], "dropped_paths": ["lib/services/x.ts"],
              "ignored_count": 7, "no_patch_paths": ["components/logo.png"]},
             list(reports), list(deferred), list(caps),
@@ -547,11 +611,11 @@ class TestPrBody(unittest.TestCase):
             {"slug": "invoices", "outcome": "edited", "applied": ["replace_section 'X'"], "rejected": ["bad body"]},
             {"slug": "whatsapp", "outcome": "created", "title": "WhatsApp", "nav_note": "grupo raro"},
             {"slug": "cost", "outcome": "rejected", "detail": "leaks Prisma"},
-            {"slug": "waste", "outcome": "failed", "detail": "NAN inalcanzable"},
+            {"slug": "waste", "outcome": "failed", "detail": "Labestia inalcanzable"},
             {"slug": "chat", "outcome": "skipped", "detail": "sin cambios"},
         ])
         for expected in ("features/invoices.mdx", "bad body", "WhatsApp", "grupo raro",
-                         "leaks Prisma", "NAN inalcanzable", "sin cambios"):
+                         "leaks Prisma", "Labestia inalcanzable", "sin cambios"):
             self.assertIn(expected, body)
 
     def test_caps_and_budget_drops_are_never_silent(self):
@@ -565,6 +629,7 @@ class TestPrBody(unittest.TestCase):
     def test_body_links_the_real_commit_range(self):
         body = self._body([])
         self.assertIn(f"compare/{'a' * 40}...{'b' * 40}", body)
+        self.assertIn("Labestia (`qwen3.6:35b-a3b`)", body)
 
     def test_empty_report_says_so_rather_than_looking_complete(self):
         self.assertIn("Ninguna página", self._body([]))
@@ -654,7 +719,7 @@ class TestNoUndefinedNames(unittest.TestCase):
     dependency, which is what makes it runnable on the VPS.
     """
 
-    MODULES = ("docs-sync.py", "docs_changelog.py", "docs_diff.py",
+    MODULES = ("docs-sync.py", "docs_changelog.py", "docs_diff.py", "docs_llm.py",
                "docs_mdx.py", "docs_nav.py", "docs_prompts.py")
 
     def test_every_name_read_resolves(self):

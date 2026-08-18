@@ -113,7 +113,7 @@ def build_pr_body(app_repo: str, model: str, main_sha: str, compare_base: str,
         f"{num_commits} commit(s) desplegados a producción, rango "
         f"[`{compare_base[:7]}...{main_sha[:7]}`](https://github.com/{app_repo}/compare/{compare_base}...{main_sha}).",
         "",
-        f"Generado por NAN (`{model}`) en dos pasos: triage del diff y edición por página.",
+        f"Generado por Labestia (`{model}`) en dos pasos: triage del diff y edición por página.",
         "**Requiere revisión humana. Nunca se mergea automáticamente.**",
         "",
         "## Páginas",
