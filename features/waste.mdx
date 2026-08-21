@@ -1,36 +1,42 @@
 ---
-title: "Desperdicio: teórico vs. real"
+title: "Desperdicio"
 sidebarTitle: "Desperdicio"
-description: "Kairos compara cuánto ingrediente deberías haber usado contra cuánto usaste realmente, y te avisa cuando la diferencia es demasiado grande."
+description: "Kairos muestra la merma registrada y calcula la varianza de uso solo entre dos conteos físicos, con ventas, recetas y compras completas."
 icon: "trash-2"
 tag: "NEW"
 ---
 
 {/* diataxis: explanation */}
 
-Para cada ingrediente, Kairos calcula cuánto debería haberse consumido según tus recetas y lo que efectivamente vendiste. Eso es el **consumo teórico**. Después lo compara contra el **consumo real**, es decir lo que efectivamente se descontó de tu stock, incluyendo lo que registraste como desperdicio.
+Kairos **no inventa un 0%** cuando faltan observaciones.
 
-La diferencia entre ambos es el desperdicio. Cuando esa diferencia supera el margen de tolerancia que definiste para el local, Kairos genera una alerta.
+Hoy el panel de desperdicio muestra la **merma registrada**: lo que el equipo cargó a mano (cantidad y motivo). Eso no es un cálculo de consumo físico.
 
-## El margen de tolerancia es tuyo
+La **varianza de uso** — cuánto se usó de más respecto de lo que justifican las ventas y las recetas — se calcula **solo entre dos conteos físicos**, y solo cuando las ventas, las recetas y las compras del intervalo están completas. Si falta el segundo conteo, o hay recetas o compras incompletas, el resultado es **sin datos**. Nunca un porcentaje fabricado ni “todo bajo control”.
 
-Cada local tiene su propio umbral de tolerancia al desperdicio, configurable desde la ficha del local. Por defecto es moderado, pero podés ajustarlo según cuánto desperdicio es normal en tu operación. Un local con mucha preparación en crudo puede tolerar más que uno que trabaja casi todo con insumos porcionados.
+## Qué ves hoy
 
-## Cuándo te avisa
+- **Merma registrada**: el costo y la cantidad de lo que se cargó como merma en el período, con motivo (vencimiento, sobrepreparación, accidente o deterioro).
+- **Sin datos para calcular** cuando no hay una pareja de conteos físicos con insumos completos.
+- Un texto fijo: Kairos calcula la varianza solo entre dos conteos físicos y con ventas, recetas y compras completas.
 
-Si un ingrediente supera la tolerancia definida, Kairos genera una alerta con una explicación breve de la causa probable. También estima cuánto te está costando ese desperdicio. Las diferencias más grandes se marcan como prioritarias.
+## Qué no hace Kairos
 
-<Note>
-  La alerta mira si el desperdicio es **inusual** respecto de lo esperado. El resumen del panel de desperdicio, en cambio, muestra el costo total de todo lo que registraste como desperdicio en el período, sin filtrar por si fue inusual o no. Son dos vistas complementarias, no el mismo número.
-</Note>
+- No compara el libro de stock del POS contra las recetas y lo llama “desperdicio calculado”.
+- No usa “compras menos receta” cuando falta el conteo final: ese residual puede seguir en cámara.
+- No asigna causas con un modelo de lenguaje.
+- No muestra 0% por ausencia de datos.
 
-## Qué ves en el panel de desperdicio
+## Cómo se va a calcular la varianza de uso
 
-- **Costo por ingrediente**: cuánto te costó el desperdicio de cada ingrediente en el rango de fechas que elijas.
-- **Tendencia**: un gráfico con la evolución diaria del costo de desperdicio, con una línea de referencia para detectar picos.
-- **Proyección a 30 días**: una estimación de cuánto vas a perder en desperdicio si el patrón actual se mantiene.
-- **Motivo del desperdicio**: para cada ingrediente podés etiquetar por qué se generó — vencimiento, sobra de preparación, accidente o deterioro. Esa etiqueta se aplica a todo el desperdicio de ese ingrediente en el rango de fechas que estés mirando, no evento por evento.
+Cuando existan dos conteos físicos del mismo ingrediente:
+
+1. Uso observado = conteo inicial + compras confiables − conteo final.
+2. Uso teórico = ventas × recetas en ese mismo intervalo.
+3. Varianza = uso observado − uso teórico.
+
+El residual positivo es **uso no explicado**. La merma registrada se muestra aparte: puede estar incluida en esa diferencia, así que no se suma otra vez.
 
 <Tip>
-  Para que este cálculo funcione, tus recetas y el stock del local tienen que estar cargados y actualizados. Podés cargarlos a mano o en lote — mirá [importar datos por CSV](/features/import).
+  Mientras no haya dos conteos, registrá merma a mano si la viste en cocina. Eso alimenta el bloque de merma registrada; no sustituye el cálculo.
 </Tip>
