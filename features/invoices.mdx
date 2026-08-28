@@ -18,7 +18,7 @@ Cada factura que cargás actualiza el stock y el costo real de tus ingredientes.
 
     1. Abrí **Facturas** y hacé clic en **Cargar factura → A mano**.
     2. Elegí el local, el proveedor y la fecha de la compra.
-    3. Agregá cada línea de compra y asociala a un ingrediente de tu catálogo.
+    3. Agregá cada línea de compra, seleccioná la unidad en el nuevo selector y asociala a un ingrediente de tu catálogo.
     4. Guardá. La factura queda **a revisar** hasta que todas las líneas tengan un ingrediente asignado — sin eso, no se puede ejecutar.
   </Tab>
   <Tab title="Foto o PDF">
@@ -56,14 +56,11 @@ Cada factura que cargás actualiza el stock y el costo real de tus ingredientes.
 
 ## Qué pasa después de cargarla
 
-Toda factura recorre el mismo circuito, sin importar cómo la cargaste:
+Toda factura recorre un circuito más directo, sin importar cómo la cargaste:
 
 <Steps>
   <Step title="A revisar">
     Un administrador confirma que los datos estén completos y cada línea tenga un ingrediente asignado.
-  </Step>
-  <Step title="Verificada">
-    Queda lista para pasar a la aprobación.
   </Step>
   <Step title="Aprobada">
     Un administrador con permiso de aprobación confirma que la compra es correcta.
@@ -73,7 +70,7 @@ Toda factura recorre el mismo circuito, sin importar cómo la cargaste:
   </Step>
 </Steps>
 
-En cualquier momento antes de ejecutarla, un administrador puede rechazarla indicando un motivo. Quién la cargó, quién la aprobó y quién la rechazó queda registrado en el historial de la factura.
+La validación intermedia ya no requiere un paso extra. Quién la cargó, quién la aprobó y quién la rechazó queda registrado en el historial de la factura.
 
 <Tip>
   Si una factura vence sin resolverse, Kairos te avisa con una alerta para que no se te pase.
