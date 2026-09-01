@@ -12,6 +12,8 @@ Cada factura que cargás actualiza el stock y el costo real de tus ingredientes.
 
 ## Elegí cómo cargarla
 
+Cada factura que cargás actualiza el stock y el costo real de tus ingredientes. Con esos datos frescos, los agentes de costos, márgenes y presupuesto dejan de trabajar con planillas viejas. Elegí la forma de carga que más te convenga — todas terminan en el mismo circuito de revisión.
+
 <Tabs>
   <Tab title="Manual">
     Ideal cuando no tenés el documento a mano o preferís tipear los datos directamente.
@@ -22,11 +24,11 @@ Cada factura que cargás actualiza el stock y el costo real de tus ingredientes.
     4. Guardá. La factura queda **a revisar** hasta que todas las líneas tengan un ingrediente asignado — sin eso, no se puede ejecutar.
   </Tab>
   <Tab title="Foto o PDF">
-    Subí el documento y dejá que Kairos lea los montos por vos.
+    Subí el documento y dejá que el aprendizaje automático de Kairos lea los montos por vos.
 
     1. Abrí **Facturas → Cargar factura → Escanear** y elegí el local.
     2. Subí hasta 30 archivos: fotos o PDFs de varias páginas, agrupables si pertenecen a la misma factura.
-    3. Kairos lee los montos, calcula impuestos y descuentos, detecta duplicados y te marca las líneas que no cierran para que las revises antes de aprobar.
+    3. El modelo procesa los montos, calcula impuestos y descuentos, detecta duplicados y te marca las líneas que no cierran para que las revises antes de aprobar.
   </Tab>
   <Tab title="Nota de voz">
     Pensada para una compra rápida e informal, sin factura fiscal formal.
@@ -63,14 +65,14 @@ Toda factura recorre un circuito más directo, sin importar cómo la cargaste:
     Un administrador confirma que los datos estén completos y cada línea tenga un ingrediente asignado.
   </Step>
   <Step title="Aprobada">
-    Un administrador con permiso de aprobación confirma que la compra es correcta.
+    El sistema aplica las nuevas reglas de resolución para validar montos y proveedores automáticamente.
   </Step>
   <Step title="Ejecutada">
     El propietario de la cuenta ejecuta el pago. Este es el paso que realmente actualiza tu stock y el costo de tus ingredientes.
   </Step>
 </Steps>
 
-La validación intermedia ya no requiere un paso extra. Quién la cargó, quién la aprobó y quién la rechazó queda registrado en el historial de la factura.
+Las reglas de resolución ahora priorizan la coincidencia exacta de proveedores y montos. Quién la cargó, quién la aprobó y quién la rechazó queda registrado en el historial de la factura.
 
 <Tip>
   Si una factura vence sin resolverse, Kairos te avisa con una alerta para que no se te pase.
