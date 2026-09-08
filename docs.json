@@ -38,7 +38,8 @@
           "features/revenue",
           "features/budget",
           "features/reconciliation",
-          "features/inventory"
+          "features/inventory",
+          "features/simulador-precios-platos"
         ]
       },
       {
