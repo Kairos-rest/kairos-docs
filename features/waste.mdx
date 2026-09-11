@@ -1,7 +1,7 @@
 ---
 title: "Desperdicio"
 sidebarTitle: "Desperdicio"
-description: "Kairos muestra la merma registrada y calcula la varianza de uso solo entre dos conteos físicos, con ventas, recetas y compras completas."
+description: "Kairos calcula la varianza de uso solo entre dos conteos físicos, con ventas, recetas y compras completas, y muestra la merma registrada por separado."
 icon: "trash-2"
 tag: "NEW"
 ---
@@ -10,15 +10,26 @@ tag: "NEW"
 
 Kairos **no inventa un 0%** cuando faltan observaciones.
 
-Hoy el panel de desperdicio muestra la **merma registrada**: lo que el equipo cargó a mano (cantidad y motivo). Eso no es un cálculo de consumo físico.
-
 La **varianza de uso** — cuánto se usó de más respecto de lo que justifican las ventas y las recetas — se calcula **solo entre dos conteos físicos**, y solo cuando las ventas, las recetas y las compras del intervalo están completas. Si falta el segundo conteo, o hay recetas o compras incompletas, el resultado es **sin datos**. Nunca un porcentaje fabricado ni “todo bajo control”.
 
-## Qué ves hoy
+La **merma registrada** es el log manual (cantidad y motivo). Se muestra en un bloque aparte: puede estar incluida en la diferencia física, así que no se suma otra vez.
 
-- **Merma registrada**: el costo y la cantidad de lo que se cargó como merma en el período, con motivo (vencimiento, sobrepreparación, accidente o deterioro).
-- **Sin datos para calcular** cuando no hay una pareja de conteos físicos con insumos completos.
+## Qué ves
+
+- **Uso no explicado** cuando hay una pareja de conteos físicos y ventas, recetas y compras completas.
+- **Sin datos para calcular** cuando falta esa pareja o hay un hueco de recetas o compras.
+- **Merma registrada**: lo que el equipo cargó a mano en el período, con motivo (vencimiento, sobrepreparación, accidente o deterioro).
 - Un texto fijo: Kairos calcula la varianza solo entre dos conteos físicos y con ventas, recetas y compras completas.
+
+## Cómo se calcula
+
+Para cada ingrediente, entre el conteo inicial `C0` y el conteo final `C1`:
+
+1. Uso observado = conteo inicial + compras confiables − conteo final.
+2. Uso teórico = ventas × recetas en el intervalo `(C0, C1]`.
+3. Varianza = uso observado − uso teórico.
+
+El residual positivo es **uso no explicado**. Una varianza negativa no es ahorro: hay que revisar conteos, compras y recetas.
 
 ## Qué no hace Kairos
 
@@ -26,16 +37,7 @@ La **varianza de uso** — cuánto se usó de más respecto de lo que justifican
 - No usa “compras menos receta” cuando falta el conteo final: ese residual puede seguir en cámara.
 - No asigna causas con un modelo de lenguaje.
 - No muestra 0% por ausencia de datos.
-
-## Cómo se va a calcular la varianza de uso
-
-Cuando existan dos conteos físicos del mismo ingrediente:
-
-1. Uso observado = conteo inicial + compras confiables − conteo final.
-2. Uso teórico = ventas × recetas en ese mismo intervalo.
-3. Varianza = uso observado − uso teórico.
-
-El residual positivo es **uso no explicado**. La merma registrada se muestra aparte: puede estar incluida en esa diferencia, así que no se suma otra vez.
+- No proyecta una serie de 30 días sin pares de conteos compatibles.
 
 <Tip>
   Mientras no haya dos conteos, registrá merma a mano si la viste en cocina. Eso alimenta el bloque de merma registrada; no sustituye el cálculo.
