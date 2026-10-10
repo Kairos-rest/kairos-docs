@@ -12,6 +12,10 @@ Cada tres horas, apenas se sincroniza tu punto de venta, Kairos revisa que las v
 
 ## Qué cruza
 
+Kairos omite los montos negativos en sus cálculos y ajusta los conteos según la generación de cada registro.
+
+Los agentes comparan números contra números, sin intervención de inteligencia artificial.
+
 <CardGroup cols={2}>
   <Card title="Pagos vs. venta" icon="credit-card">
     Que la suma de los pagos registrados en una venta cerrada coincida con su total. Una venta todavía sin ningún pago cargado no se marca — recién se revisa cuando ya tiene al menos un pago.
@@ -20,7 +24,7 @@ Cada tres horas, apenas se sincroniza tu punto de venta, Kairos revisa que las v
     Que lo contado al cerrar la caja coincida con lo que el sistema esperaba tener, según las ventas y pagos del turno.
   </Card>
   <Card title="Ventas sin facturar" icon="receipt">
-    Ventas cerradas que todavía no generaron su comprobante fiscal, dejando pasar un margen para que la factura electrónica termine de procesarse — así no te alertamos por algo que se resuelve solo en minutos.
+    Kairos espera a que la factura electrónica termine de procesarse. Así evitamos generarte una alerta por un detalle que se resuelve en minutos.
   </Card>
   <Card title="Liquidación de tarjeta" icon="landmark">
     Compara lo que tu punto de venta registró en pagos con tarjeta contra lo que la liquidadora efectivamente depositó ese día. Es el único chequeo contra una fuente externa al POS: subís el archivo de liquidaciones y Kairos hace el cruce.
@@ -28,7 +32,7 @@ Cada tres horas, apenas se sincroniza tu punto de venta, Kairos revisa que las v
 </CardGroup>
 
 <Note>
-  Cuando aparece una diferencia relevante, Kairos genera una alerta puntual — por ejemplo, una venta con un pago incompleto o un día cuya liquidación no cierra — y evita duplicarla mientras siga sin resolverse.
+  Kairos genera una alerta puntual al detectar diferencias relevantes. Evita duplicar la alerta mientras el problema persiste.
 </Note>
 
 ## El tablero de conciliación
