@@ -14,9 +14,11 @@ Con ese costo y el precio de venta, Kairos calcula el margen real de cada plato.
 
 ## Cuándo te avisa
 
-Cuando el margen real de un plato cae por debajo del objetivo, Kairos genera una alerta. Si la caída es grande, la marca como prioritaria; si es más leve, la marca como una alerta normal. Cada alerta incluye una explicación breve de la causa probable y una estimación de cuánta plata estás perdiendo, calculada sobre las unidades vendidas en el último mes.
+Kairos revisa la rentabilidad al cerrar cada estado de cuenta mensual. Si el margen real cae por debajo del objetivo, genera una alerta. La marca como prioritaria o normal según la magnitud del cambio. Cada aviso explica la causa probable y estima las pérdidas en unidades vendidas durante ese mes.
 
 ## Qué ves en el panel de costos
+
+El panel muestra la información clave con un diseño de filtros compacto. Usá los controles superiores para filtrar por categoría o estado rápidamente.
 
 <CardGroup cols={2}>
   <Card title="Ranking de márgenes" icon="chart-bar">
@@ -35,10 +37,10 @@ Cuando el margen real de un plato cae por debajo del objetivo, Kairos genera una
 
 ## Ajustar precio o margen objetivo
 
-Desde la tabla podés editar el precio de venta o el margen objetivo de cualquier plato. El cambio se refleja en el próximo cálculo de margen. Cambiar la receta de un plato — qué ingredientes usa o en qué cantidad — se hace desde la ficha del plato, no desde este panel.
+Desde la tabla podés editar el precio de venta o el margen objetivo de cualquier plato. El cambio se refleja en el próximo cálculo mensual. Modificar la receta de un plato requiere ir a la ficha del plato, no a este panel.
 
 <Tip>
-  El costo de cada ingrediente se actualiza solo con cada compra que registrás. Si el costo de un ingrediente se ve raro de golpe, revisá la última factura cargada para ese ingrediente antes de confiar en el margen que muestra.
+  La rentabilidad se actualiza al cerrar cada estado de cuenta. Si ajustás precios o costos durante el mes, Kairos los tomará en cuenta para el siguiente cierre.
 </Tip>
 
 Para que el cálculo sea preciso, Kairos necesita que la receta de cada plato y el costo de cada ingrediente estén actualizados. Podés cargarlos a mano o en lote — mirá [importar datos por CSV](/features/import).
