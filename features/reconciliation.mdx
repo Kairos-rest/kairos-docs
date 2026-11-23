@@ -12,23 +12,19 @@ Cada tres horas, apenas se sincroniza tu punto de venta, Kairos revisa que las v
 
 ## Qué cruza
 
-<CardGroup cols={2}>
-  <Card title="Pagos vs. venta" icon="credit-card">
-    Que la suma de los pagos registrados en una venta cerrada coincida con su total. Una venta todavía sin ningún pago cargado no se marca — recién se revisa cuando ya tiene al menos un pago.
-  </Card>
-  <Card title="Arqueo de caja" icon="banknote">
-    Que lo contado al cerrar la caja coincida con lo que el sistema esperaba tener, según las ventas y pagos del turno.
-  </Card>
-  <Card title="Ventas sin facturar" icon="receipt">
-    Ventas cerradas que todavía no generaron su comprobante fiscal, dejando pasar un margen para que la factura electrónica termine de procesarse — así no te alertamos por algo que se resuelve solo en minutos.
-  </Card>
-  <Card title="Liquidación de tarjeta" icon="landmark">
-    Compara lo que tu punto de venta registró en pagos con tarjeta contra lo que la liquidadora efectivamente depositó ese día. Es el único chequeo contra una fuente externa al POS: subís el archivo de liquidaciones y Kairos hace el cruce.
-  </Card>
-</CardGroup>
+Kairos organiza los cruces en dos pestañas principales.
+
+<Tabs>
+  <Tab title="Caja">
+    Acá revisás el arqueo de caja y las ventas sin facturar. El sistema compara lo contado al cerrar la caja contra lo esperado por las ventas del turno. También detecta cierres que aún no generaron comprobante fiscal.
+  </Tab>
+  <Tab title="Bancos">
+    Esta pestaña cruza los pagos con tarjeta y los depósitos externos. Kairos compara lo registrado en el punto de venta contra la liquidadora oficial. Subís el archivo de conciliación y el sistema verifica cada movimiento.
+  </Tab>
+</Tabs>
 
 <Note>
-  Cuando aparece una diferencia relevante, Kairos genera una alerta puntual — por ejemplo, una venta con un pago incompleto o un día cuya liquidación no cierra — y evita duplicarla mientras siga sin resolverse.
+  Usá los filtros superiores para ver solo arqueos o cierres pendientes. Así aislás las diferencias que requieren atención inmediata.
 </Note>
 
 ## El tablero de conciliación
